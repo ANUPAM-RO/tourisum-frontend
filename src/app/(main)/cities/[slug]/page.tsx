@@ -23,15 +23,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InteractiveMap, MapMarker } from '@/components/map';
+import { formatRating, cn } from '@/lib/utils';
 import {
   createPlaceMarkers,
   createHotelMarkers,
   createRestaurantMarkers,
 } from '@/lib/mapHelpers';
-import { useCityBySlug } from '@/lib/hooks';
+import { useCityBySlug, useToggleFavorite } from '@/lib/hooks';
 
 export default function CityPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const { isFavorite, toggle } = useToggleFavorite();
   const { data: cityResponse, isLoading } = useCityBySlug(slug);
   const city = cityResponse?.data;
 
@@ -169,6 +171,14 @@ export default function CityPage({ params }: { params: Promise<{ slug: string }>
                                 {Array.isArray(place.category) ? place.category[0] : place.category}
                               </Badge>
                             )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(place._id); }}
+                              className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                              aria-label={isFavorite(place._id) ? 'Remove from favorites' : 'Add to favorites'}
+                            >
+                              <Heart className={cn('h-4 w-4', isFavorite(place._id) && 'fill-red-500 text-red-500')} />
+                            </button>
                             <div className="absolute bottom-4 left-4 text-white">
                               <h3 className="text-lg font-bold">{place.name}</h3>
                             </div>
@@ -177,7 +187,7 @@ export default function CityPage({ params }: { params: Promise<{ slug: string }>
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-1">
                                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                <span className="font-medium">{place.rating || '4.5'}</span>
+                                <span className="font-medium">{formatRating(place.rating)}</span>
                               </div>
                               <p className="font-bold text-blue-600">{place.entryFee || 'Free'}</p>
                             </div>
@@ -263,7 +273,7 @@ export default function CityPage({ params }: { params: Promise<{ slug: string }>
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{restaurant.rating || '4.0'}</span>
+                            <span className="font-medium">{formatRating(restaurant.rating, '4.0')}</span>
                           </div>
                           <p className="font-bold text-emerald-600">
                             ₹{restaurant.averageCost || 'N/A'}/person

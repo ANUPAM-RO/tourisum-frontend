@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { usePlaces, useStates } from '@/lib/hooks';
+import { usePlaces, useStates, useToggleFavorite } from '@/lib/hooks';
+import { formatRating, cn } from '@/lib/utils';
 
 const categories = ['All', 'Hill Station', 'Beach', 'Heritage', 'Wildlife', 'Religious', 'Adventure', 'Honeymoon', 'Family Trip'];
 
@@ -38,6 +39,7 @@ export default function PlacesPage() {
 
   const { data: placesData, isLoading: placesLoading } = usePlaces({ limit: 50 });
   const { data: statesData } = useStates({ limit: 50 });
+  const { isFavorite, toggle } = useToggleFavorite();
 
   const places = placesData?.data || [];
   const states = statesData?.data || [];
@@ -163,8 +165,13 @@ export default function PlacesPage() {
                             </Badge>
                           ))}
                         </div>
-                        <button className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors">
-                          <Heart className="h-4 w-4" />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(place._id); }}
+                          className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                          aria-label={isFavorite(place._id) ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <Heart className={cn('h-4 w-4', isFavorite(place._id) && 'fill-red-500 text-red-500')} />
                         </button>
                         <div className="absolute bottom-4 left-4 text-white">
                           <h3 className="text-xl font-bold">{place.name}</h3>
@@ -181,7 +188,7 @@ export default function PlacesPage() {
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{place.rating || '4.5'}</span>
+                            <span className="font-medium">{formatRating(place.rating)}</span>
                           </div>
                           <div className="text-right">
                             <span className="text-sm text-gray-500">Entry</span>

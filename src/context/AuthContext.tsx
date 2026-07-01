@@ -31,9 +31,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
+      hydrateFavorites();
     }
     setLoading(false);
   }, []);
+
+  const hydrateFavorites = async () => {
+    try {
+      const response = await authService.getProfile();
+      if (response.success && response.data) {
+        const favorites = (response.data as any).favorites || [];
+        setUser((prev) => {
+          if (!prev) return prev;
+          const updated = { ...prev, favorites };
+          localStorage.setItem('user', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch {
+      // ignore — favorites will still work once toggled
+    }
+  };
 
   const login = async (email: string, password: string) => {
     const response = await authService.login({ email, password });
@@ -43,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
+      await hydrateFavorites();
     }
   };
 
@@ -54,6 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
+      await hydrateFavorites();
     }
   };
 

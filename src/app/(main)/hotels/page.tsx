@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useHotels } from '@/lib/hooks';
+import { formatRating } from '@/lib/utils';
 
 const amenityIcons: Record<string, React.ReactNode> = {
   'Free WiFi': <Wifi className="h-3 w-3" />,
@@ -220,7 +221,7 @@ export default function HotelsPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{hotel.rating || '4.5'}</span>
+                            <span className="font-medium">{formatRating(hotel.rating)}</span>
                           </div>
                         </div>
                       </CardContent>

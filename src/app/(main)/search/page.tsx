@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -11,6 +11,9 @@ import {
   Heart,
   Filter,
   SlidersHorizontal,
+  Clock,
+  Eye,
+  ArrowRight,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,22 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-
-const allPlaces = [
-  { name: 'Taj Mahal', slug: 'taj-mahal', location: 'Agra, UP', state: 'Uttar Pradesh', city: 'Agra', image: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800', rating: 4.9, category: ['Heritage'], entryFee: '₹50', budget: 2500 },
-  { name: 'Victoria Memorial', slug: 'victoria-memorial', location: 'Kolkata, WB', state: 'West Bengal', city: 'Kolkata', image: 'https://images.unsplash.com/photo-1558431460-98e7b2e29894?w=800', rating: 4.7, category: ['Heritage'], entryFee: '₹30', budget: 2000 },
-  { name: 'Dal Lake', slug: 'dal-lake', location: 'Srinagar, JK', state: 'Jammu & Kashmir', city: 'Srinagar', image: 'https://images.unsplash.com/photo-1597074836924-8e13c0e81655?w=800', rating: 4.8, category: ['Hill Station', 'Honeymoon'], entryFee: 'Free', budget: 5000 },
-  { name: 'Goa Beaches', slug: 'goa-beaches', location: 'Goa', state: 'Goa', city: 'Panaji', image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', rating: 4.6, category: ['Beach', 'Honeymoon'], entryFee: 'Free', budget: 4000 },
-  { name: 'Munnar', slug: 'munnar', location: 'Kerala', state: 'Kerala', city: 'Munnar', image: 'https://images.unsplash.com/photo-1593693411515-c20261bcad6e?w=800', rating: 4.7, category: ['Hill Station', 'Family Trip'], entryFee: 'Free', budget: 3500 },
-  { name: 'Jaipur Forts', slug: 'jaipur-forts', location: 'Jaipur, RJ', state: 'Rajasthan', city: 'Jaipur', image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800', rating: 4.8, category: ['Heritage', 'Family Trip'], entryFee: '₹200', budget: 3000 },
-  { name: 'Sundarbans', slug: 'sundarbans', location: 'West Bengal', state: 'West Bengal', city: 'Canning', image: 'https://images.unsplash.com/photo-1593693411515-c20261bcad6e?w=800', rating: 4.6, category: ['Wildlife', 'Adventure'], entryFee: '₹100', budget: 4500 },
-  { name: 'Rishikesh', slug: 'rishikesh', location: 'Uttarakhand', state: 'Uttarakhand', city: 'Rishikesh', image: 'https://images.unsplash.com/photo-1593693411515-c20261bcad6e?w=800', rating: 4.6, category: ['Religious', 'Adventure'], entryFee: 'Free', budget: 3000 },
-];
-
-const categories = ['All', 'Hill Station', 'Beach', 'Heritage', 'Wildlife', 'Religious', 'Adventure', 'Honeymoon', 'Family Trip'];
-const states = ['All', 'West Bengal', 'Rajasthan', 'Kerala', 'Goa', 'Uttar Pradesh', 'Karnataka', 'Tamil Nadu', 'Himachal Pradesh', 'Uttarakhand'];
-const durations = ['All', '1-2 Days', '3-4 Days', '5-7 Days', '7+ Days'];
+import { usePlaces, useStates, useCategories, useToggleFavorite } from '@/lib/hooks';
+import { formatRating, cn } from '@/lib/utils';
 
 export default function SearchPage() {
   return (
@@ -50,24 +39,48 @@ export default function SearchPage() {
 
 function SearchContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
   const [selectedState, setSelectedState] = useState(searchParams.get('state') || 'All');
-  const [selectedDuration, setSelectedDuration] = useState('All');
-  const [budgetRange, setBudgetRange] = useState([0, 10000]);
   const [minRating, setMinRating] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 12;
 
-  const filteredPlaces = allPlaces.filter((place) => {
-    const matchesSearch = place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      place.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      place.state.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || place.category.includes(selectedCategory);
-    const matchesState = selectedState === 'All' || place.state === selectedState;
-    const matchesBudget = place.budget >= budgetRange[0] && place.budget <= budgetRange[1];
-    const matchesRating = place.rating >= minRating;
-    return matchesSearch && matchesCategory && matchesState && matchesBudget && matchesRating;
+  const { data: placesData, isLoading: placesLoading } = usePlaces({
+    page,
+    limit,
+    category: selectedCategory !== 'All' ? selectedCategory : undefined,
+    state: selectedState !== 'All' ? selectedState : undefined,
+    search: searchQuery || undefined,
+    minRating: minRating > 0 ? minRating : undefined,
   });
+
+  const { data: statesData } = useStates({ limit: 50 });
+  const { data: categoriesData } = useCategories();
+  const { isFavorite, toggle } = useToggleFavorite();
+
+  const places = placesData?.data || [];
+  const states = statesData?.data || [];
+  const categories = categoriesData?.data?.map((c) => c.name) || [];
+
+  const handleFilterChange = (type: string, value: string) => {
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (type === 'q' && value) params.set('q', value);
+    else if (type === 'q') params.delete('q');
+    if (type === 'category' && value !== 'All') params.set('category', value);
+    else if (type === 'category') params.delete('category');
+    if (type === 'state' && value !== 'All') params.set('state', value);
+    else if (type === 'state') params.delete('state');
+    router.push(`/search?${params.toString()}`);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleFilterChange('q', searchQuery);
+  };
 
   return (
     <div className="pt-20">
@@ -79,10 +92,10 @@ function SearchContent() {
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl md:text-4xl font-bold text-white mb-6"
           >
-            Search Destinations
+            {selectedCategory !== 'All' ? `${selectedCategory} Destinations` : 'Search Destinations'}
           </motion.h1>
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
+            <form onSubmit={handleSearch} className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
                 type="text"
@@ -91,7 +104,7 @@ function SearchContent() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 h-14 bg-white rounded-xl text-lg"
               />
-            </div>
+            </form>
             <Button
               variant="secondary"
               onClick={() => setShowFilters(!showFilters)}
@@ -111,34 +124,40 @@ function SearchContent() {
             <Filter className="h-5 w-5" />
             <h3 className="font-semibold">Filters</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Select value={selectedCategory} onValueChange={(v) => v && setSelectedCategory(v)}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select
+              value={selectedCategory}
+              onValueChange={(v) => {
+                if (!v) return;
+                setSelectedCategory(v);
+                handleFilterChange('category', v);
+              }}
+            >
               <SelectTrigger className="h-12">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="All">All Categories</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedState} onValueChange={(v) => v && setSelectedState(v)}>
+            <Select
+              value={selectedState}
+              onValueChange={(v) => {
+                if (!v) return;
+                setSelectedState(v);
+                handleFilterChange('state', v);
+              }}
+            >
               <SelectTrigger className="h-12">
                 <SelectValue placeholder="State" />
               </SelectTrigger>
               <SelectContent>
-                {states.map((state) => (
-                  <SelectItem key={state} value={state}>{state}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedDuration} onValueChange={(v) => v && setSelectedDuration(v)}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Duration" />
-              </SelectTrigger>
-              <SelectContent>
-                {durations.map((duration) => (
-                  <SelectItem key={duration} value={duration}>{duration}</SelectItem>
+                <SelectItem value="All">All States</SelectItem>
+                {states.map((state: any) => (
+                  <SelectItem key={state._id} value={state.name}>{state.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -155,18 +174,6 @@ function SearchContent() {
               />
             </div>
           </div>
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p className="text-sm text-gray-500 mb-2">Budget Range: ₹{budgetRange[0]} - ₹{budgetRange[1]}</p>
-            <input
-              type="range"
-              min="0"
-              max="10000"
-              step="500"
-              value={budgetRange[1]}
-              onChange={(e) => setBudgetRange([budgetRange[0], parseInt(e.target.value)])}
-              className="w-full"
-            />
-          </div>
         </div>
       </section>
 
@@ -175,54 +182,78 @@ function SearchContent() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="mb-6">
             <p className="text-gray-600 dark:text-gray-400">
-              Found {filteredPlaces.length} destination{filteredPlaces.length !== 1 ? 's' : ''}
+              Found {places.length} destination{places.length !== 1 ? 's' : ''}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPlaces.map((place, index) => (
+            {placesLoading ? [...Array(6)].map((_, index) => (
+              <div key={index} className="h-96 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
+            )) : places.map((place: any, index: number) => (
               <motion.div
-                key={place.slug}
+                key={place._id || place.slug}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
                 <Link href={`/places/${place.slug}`}>
-                  <Card className="card-hover border-0 overflow-hidden group cursor-pointer h-full">
-                    <div className="relative h-52 overflow-hidden">
+                  <Card className="card-hover border-0 overflow-hidden group cursor-pointer h-full bg-white dark:bg-gray-800/50 shadow-sm hover:shadow-xl">
+                    <div className="relative h-64 overflow-hidden">
                       <img
-                        src={place.image}
+                        src={place.images?.[0] || place.image}
                         alt={place.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                        {place.category.slice(0, 2).map((cat) => (
+                        {place.category?.slice(0, 2).map((cat: string) => (
                           <Badge key={cat} className="bg-white/90 text-gray-900">
                             {cat}
                           </Badge>
                         ))}
+                        {place.entryFee?.toLowerCase().includes('free') && (
+                          <Badge className="bg-emerald-500/90 text-white">
+                            Free Entry
+                          </Badge>
+                        )}
                       </div>
-                      <button className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors">
-                        <Heart className="h-4 w-4" />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(place._id); }}
+                        className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                        aria-label={isFavorite(place._id) ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        <Heart className={cn('h-4 w-4', isFavorite(place._id) && 'fill-red-500 text-red-500')} />
                       </button>
                       <div className="absolute bottom-4 left-4 text-white">
                         <h3 className="text-xl font-bold">{place.name}</h3>
                         <div className="flex items-center gap-2 text-sm text-white/80">
                           <MapPin className="h-4 w-4" />
-                          {place.location}
+                          {typeof place.city === 'object' ? place.city?.name : ''}{typeof place.state === 'object' && place.state?.name ? `, ${place.state.name}` : ''}
                         </div>
                       </div>
+                      <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-semibold text-gray-900">{formatRating(place.rating)}</span>
+                      </div>
                     </div>
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{place.rating}</span>
+                    <CardContent className="p-5">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {place.bestTimeToVisit || 'Year-round'}
+                          </span>
                         </div>
-                        <div className="text-right">
-                          <span className="text-sm text-gray-500">Est. Budget</span>
-                          <p className="font-bold text-blue-600">₹{place.budget}/day</p>
+                      </div>
+                      <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
+                        <div>
+                          <span className="text-xs text-gray-500">Entry from</span>
+                          <p className="font-bold text-blue-600 text-lg">{place.entryFee || 'Free'}</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <Eye className="h-4 w-4" />
+                          {place.reviews?.length || 0} reviews
                         </div>
                       </div>
                     </CardContent>
@@ -232,11 +263,43 @@ function SearchContent() {
             ))}
           </div>
 
-          {filteredPlaces.length === 0 && (
+          {places.length === 0 && !placesLoading && (
             <div className="text-center py-16">
               <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No destinations found</h3>
               <p className="text-gray-500">Try adjusting your search or filters</p>
+            </div>
+          )}
+
+          {placesData?.pagination && placesData.pagination.pages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-12">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              {Array.from({ length: placesData.pagination.pages }, (_, i) => i + 1).map((p) => (
+                <Button
+                  key={p}
+                  variant={p === page ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPage(p)}
+                  className={p === page ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                >
+                  {p}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(placesData.pagination!.pages, p + 1))}
+                disabled={page === placesData.pagination!.pages}
+              >
+                Next
+              </Button>
             </div>
           )}
         </div>

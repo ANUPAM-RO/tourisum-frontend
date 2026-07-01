@@ -40,6 +40,11 @@ export const placeService = {
     return response.data;
   },
 
+  getCategories: async () => {
+    const response = await api.get<ApiResponse<{ name: string; count: number }[]>>('/places/categories');
+    return response.data;
+  },
+
   delete: async (id: string) => {
     const response = await api.delete<ApiResponse<null>>(`/places/${id}`);
     return response.data;

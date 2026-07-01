@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { formatRating } from '@/lib/utils';
 import api from '@/lib/api';
 
 interface RestaurantItem {
@@ -352,7 +353,7 @@ export default function AdminRestaurantsPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex flex-wrap gap-1">
-                          {restaurant.cuisine?.slice(0, 2).map((c) => (<Badge key={c} variant="secondary" className="text-xs">{c}</Badge>))}
+                          {Array.from(new Set(restaurant.cuisine)).slice(0, 2).map((c: any) => (<Badge key={c} variant="secondary" className="text-xs">{c}</Badge>))}
                         </div>
                       </td>
                       <td className="py-4 px-6">
@@ -362,7 +363,7 @@ export default function AdminRestaurantsPage() {
                       </td>
                       <td className="py-4 px-6 font-medium">₹{restaurant.averageCost}</td>
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-1"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /><span>{restaurant.rating || '0'}</span></div>
+                        <div className="flex items-center gap-1"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /><span>{formatRating(restaurant.rating, '0')}</span></div>
                       </td>
                       <td className="py-4 px-6">
                         <button onClick={() => togglePublish(restaurant._id, restaurant.published)}>

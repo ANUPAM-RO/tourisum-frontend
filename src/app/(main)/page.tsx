@@ -38,7 +38,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { useStates, usePlaces } from '@/lib/hooks';
+import { useStates, usePlaces, useCategories, useToggleFavorite } from '@/lib/hooks';
+import { formatRating, cn } from '@/lib/utils';
 
 // Animation variants
 const fadeInUp = {
@@ -71,15 +72,15 @@ const staggerContainer = {
   },
 };
 
-const categories = [
-  { name: 'Hill Station', icon: Mountain, color: 'from-blue-500 to-cyan-500', bg: 'bg-blue-50 dark:bg-blue-950/30', count: 150, description: 'Cool mountain retreats' },
-  { name: 'Beach', icon: Waves, color: 'from-cyan-500 to-blue-500', bg: 'bg-cyan-50 dark:bg-cyan-950/30', count: 85, description: 'Sun-kissed shorelines' },
-  { name: 'Heritage', icon: Building2, color: 'from-amber-500 to-orange-500', bg: 'bg-amber-50 dark:bg-amber-950/30', count: 200, description: 'Historical monuments' },
-  { name: 'Wildlife', icon: Trees, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', count: 120, description: 'Nature & safaris' },
-  { name: 'Religious', icon: Church, color: 'from-purple-500 to-pink-500', bg: 'bg-purple-50 dark:bg-purple-950/30', count: 180, description: 'Spiritual journeys' },
-  { name: 'Adventure', icon: Tent, color: 'from-red-500 to-orange-500', bg: 'bg-red-50 dark:bg-red-950/30', count: 95, description: 'Thrilling experiences' },
-  { name: 'Honeymoon', icon: Heart, color: 'from-pink-500 to-rose-500', bg: 'bg-pink-50 dark:bg-pink-950/30', count: 75, description: 'Romantic getaways' },
-  { name: 'Family Trip', icon: Users, color: 'from-indigo-500 to-blue-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30', count: 160, description: 'Fun for everyone' },
+const categoryConfig = [
+  { name: 'Hill Station', icon: Mountain, color: 'from-blue-500 to-cyan-500', bg: 'bg-blue-50 dark:bg-blue-950/30', description: 'Cool mountain retreats' },
+  { name: 'Beach', icon: Waves, color: 'from-cyan-500 to-blue-500', bg: 'bg-cyan-50 dark:bg-cyan-950/30', description: 'Sun-kissed shorelines' },
+  { name: 'Heritage', icon: Building2, color: 'from-amber-500 to-orange-500', bg: 'bg-amber-50 dark:bg-amber-950/30', description: 'Historical monuments' },
+  { name: 'Wildlife', icon: Trees, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', description: 'Nature & safaris' },
+  { name: 'Religious', icon: Church, color: 'from-purple-500 to-pink-500', bg: 'bg-purple-50 dark:bg-purple-950/30', description: 'Spiritual journeys' },
+  { name: 'Adventure', icon: Tent, color: 'from-red-500 to-orange-500', bg: 'bg-red-50 dark:bg-red-950/30', description: 'Thrilling experiences' },
+  { name: 'Honeymoon', icon: Heart, color: 'from-pink-500 to-rose-500', bg: 'bg-pink-50 dark:bg-pink-950/30', description: 'Romantic getaways' },
+  { name: 'Family Trip', icon: Users, color: 'from-indigo-500 to-blue-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30', description: 'Fun for everyone' },
 ];
 
 const trendingDestinations = [
@@ -176,10 +177,23 @@ export default function HomePage() {
 
   // Fetch data from backend
   const { data: statesData } = useStates({ limit: 10 });
-  const { data: placesData } = usePlaces({ limit: 9 });
+  const { data: placesData, isLoading: placesLoading, isFetching: placesFetching } = usePlaces({
+    limit: 9,
+    category: activeCategory !== 'All' ? activeCategory : undefined,
+  });
+  const { data: categoriesData } = useCategories();
+  const { isFavorite, toggle } = useToggleFavorite();
 
   const states = statesData?.data || [];
   const places = placesData?.data || [];
+
+  const categories = categoryConfig.map((config) => {
+    const apiCategory = categoriesData?.data?.find((c) => c.name === config.name);
+    return {
+      ...config,
+      count: apiCategory?.count || 0,
+    };
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -203,10 +217,6 @@ export default function HomePage() {
       window.location.href = `/search?${params.toString()}`;
     }
   };
-
-  const filteredDestinations = activeCategory === 'All'
-    ? places
-    : places.filter((p: any) => p.category?.includes(activeCategory));
 
   return (
     <div className="overflow-hidden">
@@ -402,11 +412,11 @@ export default function HomePage() {
           </motion.div>
 
           <motion.div
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true, margin: '-100px' }}
+            key={activeCategory}
             variants={staggerContainer}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
+            initial="initial"
+            animate="animate"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {categories.map((category, index) => (
               <motion.div key={category.name} variants={fadeInUp}>
@@ -469,13 +479,14 @@ export default function HomePage() {
           </motion.div>
 
           <motion.div
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true, margin: '-100px' }}
             variants={staggerContainer}
+            initial="initial"
+            animate="animate"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {filteredDestinations.length > 0 ? filteredDestinations.slice(0, 6).map((place: any, index: number) => (
+            {placesFetching && !places.length ? [...Array(6)].map((_, index) => (
+              <div key={index} className="h-96 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
+            )) : places.length > 0 ? places.slice(0, 6).map((place: any, index: number) => (
               <motion.div key={place._id || place.slug} variants={fadeInUp}>
                 <Link href={`/places/${place.slug}`}>
                   <Card className="card-hover border-0 overflow-hidden group cursor-pointer bg-white dark:bg-gray-800/50 shadow-sm hover:shadow-xl">
@@ -503,8 +514,13 @@ export default function HomePage() {
 
                       {/* Action buttons */}
                       <div className="absolute top-4 right-4 flex gap-2">
-                        <button className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg">
-                          <Heart className="h-4 w-4 text-gray-700" />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(place._id); }}
+                          className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg"
+                          aria-label={isFavorite(place._id) ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <Heart className={cn('h-4 w-4', isFavorite(place._id) ? 'fill-red-500 text-red-500' : 'text-gray-700')} />
                         </button>
                       </div>
 
@@ -520,7 +536,7 @@ export default function HomePage() {
                       {/* Rating badge */}
                       <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-semibold text-gray-900">{place.rating || '4.5'}</span>
+                        <span className="text-sm font-semibold text-gray-900">{formatRating(place.rating)}</span>
                       </div>
 
                       {/* Video badge */}
@@ -554,9 +570,11 @@ export default function HomePage() {
                   </Card>
                 </Link>
               </motion.div>
-            )) : [...Array(6)].map((_, index) => (
-              <div key={index} className="h-96 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-            ))}
+            )) : (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                No destinations found for this category
+              </div>
+            )}
           </motion.div>
 
           <motion.div
@@ -1016,7 +1034,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
                 <Link href="/search">
-                  <Button size="lg" variant="outline" className="h-14 px-8 rounded-2xl border-white/30 text-white hover:bg-white/10 font-semibold">
+                  <Button size="lg" className="h-14 px-8 rounded-2xl bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border border-white/30 font-semibold shadow-xl">
                     <Search className="h-5 w-5 mr-2" />
                     Search Destinations
                   </Button>

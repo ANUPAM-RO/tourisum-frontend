@@ -47,10 +47,11 @@ import {
   DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { usePlaceBySlug } from '@/lib/hooks';
+import { usePlaceBySlug, useToggleFavorite } from '@/lib/hooks';
 import { useAuth } from '@/context/AuthContext';
 import placeService from '@/services/placeService';
 import api from '@/lib/api';
+import { formatRating, cn } from '@/lib/utils';
 import { InteractiveMap, MapMarker } from '@/components/map';
 import {
   createPlaceMarkers,
@@ -68,6 +69,7 @@ export default function PlacePage({ params }: { params: Promise<{ slug: string }
 
   const { data: placeData, isLoading } = usePlaceBySlug(slug);
   const place = placeData?.data;
+  const { isFavorite, toggle } = useToggleFavorite();
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
@@ -240,8 +242,14 @@ export default function PlacePage({ params }: { params: Promise<{ slug: string }
 
         {/* Action buttons */}
         <div className="absolute top-4 right-4 flex gap-2">
-          <Button size="icon" variant="secondary" className="rounded-full bg-white/90 hover:bg-white">
-            <Heart className="h-5 w-5" />
+          <Button
+            size="icon"
+            variant="secondary"
+            className="rounded-full bg-white/90 hover:bg-white"
+            onClick={() => place && toggle(place._id)}
+            aria-label={place && isFavorite(place._id) ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Heart className={cn('h-5 w-5', place && isFavorite(place._id) && 'fill-red-500 text-red-500')} />
           </Button>
           <Button size="icon" variant="secondary" className="rounded-full bg-white/90 hover:bg-white">
             <Share2 className="h-5 w-5" />
@@ -266,7 +274,7 @@ export default function PlacePage({ params }: { params: Promise<{ slug: string }
               </div>
               <div className="flex items-center gap-1">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">{place.rating || '4.5'}</span>
+                <span className="font-semibold">{formatRating(place.rating)}</span>
               </div>
               {place.openingTime && place.closingTime && (
                 <div className="flex items-center gap-2">

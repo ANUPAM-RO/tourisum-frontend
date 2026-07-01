@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRestaurants } from '@/lib/hooks';
+import { formatRating } from '@/lib/utils';
 
 export default function RestaurantsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,7 +209,7 @@ export default function RestaurantsPage() {
 
                       <CardContent className="p-5">
                         <div className="flex flex-wrap gap-2 mb-3">
-                          {restaurant.cuisine?.slice(0, 3).map((c: string) => (
+                          {Array.from(new Set(restaurant.cuisine)).slice(0, 3).map((c: any) => (
                             <Badge key={c} variant="secondary" className="text-xs">
                               {c}
                             </Badge>
@@ -227,7 +228,7 @@ export default function RestaurantsPage() {
                         <div className="flex justify-between items-center pt-3 border-t dark:border-gray-700">
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{restaurant.rating || '4.5'}</span>
+                            <span className="font-medium">{formatRating(restaurant.rating)}</span>
                           </div>
                           <div className="text-right">
                             <span className="text-xs text-gray-500">Avg cost</span>

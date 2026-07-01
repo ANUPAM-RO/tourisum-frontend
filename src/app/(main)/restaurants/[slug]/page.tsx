@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { InteractiveMap, MapMarker } from '@/components/map';
 import { useRestaurantBySlug } from '@/lib/hooks';
+import { formatRating } from '@/lib/utils';
 
 export default function RestaurantDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -131,7 +132,7 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ slu
                     {restaurant.vegNonVeg === 'veg' ? 'Pure Veg' : restaurant.vegNonVeg === 'non-veg' ? 'Non-Veg' : 'Veg & Non-Veg'}
                   </Badge>
                 )}
-                {restaurant.cuisine?.map((cat: string) => (
+                {Array.from(new Set(restaurant.cuisine)).map((cat: any) => (
                   <Badge key={cat} className="bg-white/20 text-white backdrop-blur-sm">
                     {cat}
                   </Badge>
@@ -146,7 +147,7 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ slu
                 {restaurant.rating && (
                   <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{restaurant.rating}</span>
+                    <span className="font-semibold">{formatRating(restaurant.rating)}</span>
                   </div>
                 )}
                 {restaurant.averageCost && (
@@ -306,7 +307,7 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ slu
                     <div className="mt-6">
                       <h3 className="font-semibold mb-3">Cuisine</h3>
                       <div className="flex flex-wrap gap-2">
-                        {restaurant.cuisine.map((c: string) => (
+                        {Array.from(new Set(restaurant.cuisine)).map((c: any) => (
                           <Badge key={c} className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                             {c}
                           </Badge>

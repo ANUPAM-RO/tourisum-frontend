@@ -1,17 +1,28 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import placeService from '@/services/placeService';
 import stateService from '@/services/stateService';
 import cityService from '@/services/cityService';
+import authService from '@/services/authService';
 import { hotelService, restaurantService } from '@/services/hotelRestaurantService';
 import { Place, State, City, Hotel, Restaurant } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 export const usePlaces = (params?: { page?: number; limit?: number; category?: string; state?: string; city?: string; search?: string; minRating?: number }) => {
   return useQuery({
     queryKey: ['places', params],
     queryFn: () => placeService.getAll(params),
+    placeholderData: (prev) => prev,
+  });
+};
+
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: () => placeService.getCategories(),
   });
 };
 
@@ -81,4 +92,36 @@ export const useRestaurantBySlug = (slug: string) => {
     queryFn: () => restaurantService.getBySlug(slug),
     enabled: !!slug,
   });
+};
+
+export const useFavorites = (enabled: boolean) => {
+  return useQuery({
+    queryKey: ['favorites'],
+    queryFn: () => authService.getFavorites(),
+    enabled,
+  });
+};
+
+export const useToggleFavorite = () => {
+  const { isAuthenticated, user, toggleFavorite } = useAuth();
+  const queryClient = useQueryClient();
+
+  const isFavorite = (placeId?: string) => !!placeId && !!user?.favorites?.includes(placeId);
+
+  const toggle = async (placeId: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please login to add favorites');
+      return;
+    }
+    const wasFavorite = isFavorite(placeId);
+    try {
+      await toggleFavorite(placeId);
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      toast.success(wasFavorite ? 'Removed from favorites' : 'Added to favorites');
+    } catch {
+      toast.error('Something went wrong. Please try again.');
+    }
+  };
+
+  return { isFavorite, toggle };
 };

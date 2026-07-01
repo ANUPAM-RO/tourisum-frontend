@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { formatRating } from '@/lib/utils';
 
 const CATEGORIES = ['Hill Station', 'Beach', 'Heritage', 'Wildlife', 'Religious', 'Adventure', 'Honeymoon', 'Family Trip'];
 
@@ -632,7 +633,7 @@ export default function AdminPlacesPage() {
                       <td className="py-4 px-6"><Badge variant="secondary">{place.category?.[0] || '—'}</Badge></td>
                       <td className="py-4 px-6 font-medium">{place.entryFee || 'Free'}</td>
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-1"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /><span>{place.rating || '0'}</span></div>
+                        <div className="flex items-center gap-1"><Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /><span>{formatRating(place.rating, '0')}</span></div>
                       </td>
                       <td className="py-4 px-6">
                         <button onClick={() => togglePublish(place._id, place.published)}>
