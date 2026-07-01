@@ -54,6 +54,12 @@ export interface City {
     latitude: number;
     longitude: number;
   };
+  weather: {
+    summer: string;
+    winter: string;
+    monsoon: string;
+  };
+  bestTimeToVisit: string;
   popularPlaces: Place[];
   hotels: Hotel[];
   restaurants: Restaurant[];
@@ -228,6 +234,7 @@ export interface Restaurant {
   };
   googleMapLink: string;
   phone: string;
+  website: string;
   averageCost: number;
   openingTime: string;
   closingTime: string;

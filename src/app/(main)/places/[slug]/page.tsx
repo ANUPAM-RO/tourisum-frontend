@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   MapPin,
   Clock,
@@ -30,18 +33,156 @@ import {
   ChevronRight,
   Download,
   MessageSquare,
+  Play,
+  Upload,
+  X,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { usePlaceBySlug } from '@/lib/hooks';
+import { useAuth } from '@/context/AuthContext';
+import placeService from '@/services/placeService';
+import api from '@/lib/api';
+import { InteractiveMap, MapMarker } from '@/components/map';
+import {
+  createPlaceMarkers,
+  createHotelMarkers,
+  createRestaurantMarkers,
+  createNearbySpotMarkers,
+} from '@/lib/mapHelpers';
 
-export default function PlacePage({ params }: { params: { slug: string } }) {
+export default function PlacePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const [selectedImage, setSelectedImage] = useState(0);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
-  const { data: placeData, isLoading } = usePlaceBySlug(params.slug);
+  const { data: placeData, isLoading } = usePlaceBySlug(slug);
   const place = placeData?.data;
+
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const openReviewDialog = () => {
+    if (!isAuthenticated) {
+      toast.error('Please login to write a review');
+      router.push('/auth/login');
+      return;
+    }
+    setReviewDialogOpen(true);
+  };
+
+  const handlePhotoUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = async (e: any) => {
+      const files = Array.from(e.target.files) as File[];
+      if (!files.length) return;
+      setUploadingPhotos(true);
+      try {
+        const fd = new FormData();
+        files.forEach((f) => fd.append('images', f));
+        const res = await api.post('/upload/multiple', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        if (res.data.success) {
+          const urls = res.data.data.map((img: any) => img.url);
+          setReviewPhotos((prev) => [...prev, ...urls]);
+        }
+      } catch {
+        toast.error('Photo upload failed');
+      } finally {
+        setUploadingPhotos(false);
+      }
+    };
+    input.click();
+  };
+
+  const removeReviewPhoto = (index: number) => {
+    setReviewPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const resetReviewForm = () => {
+    setReviewRating(0);
+    setReviewComment('');
+    setReviewPhotos([]);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!place) return;
+    if (reviewRating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+    if (!reviewComment.trim()) {
+      toast.error('Please write about your experience');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await placeService.addReview(place._id, {
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+        photos: reviewPhotos,
+      });
+      toast.success('Thanks for sharing your experience!');
+      setReviewDialogOpen(false);
+      resetReviewForm();
+      queryClient.invalidateQueries({ queryKey: ['place', slug] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const mapMarkers: MapMarker[] = [];
+
+  if (place) {
+    if (place.location?.latitude && place.location?.longitude) {
+      mapMarkers.push({
+        id: place._id,
+        name: place.name,
+        lat: place.location.latitude,
+        lng: place.location.longitude,
+        type: 'place',
+        description: place.description?.substring(0, 100),
+        extraInfo: {
+          ...(place.entryFee && { 'Entry Fee': place.entryFee }),
+          ...(place.rating && { Rating: `${place.rating}/5` }),
+        },
+      });
+    }
+
+    if (place.nearbySpots?.length) {
+      mapMarkers.push(...createNearbySpotMarkers(place.nearbySpots));
+    }
+
+    if (place.hotels?.length) {
+      mapMarkers.push(...createHotelMarkers(place.hotels));
+    }
+
+    if (place.restaurants?.length) {
+      mapMarkers.push(...createRestaurantMarkers(place.restaurants));
+    }
+  }
+
+  const mapCenter: [number, number] = place?.location?.latitude && place?.location?.longitude
+    ? [place.location.latitude, place.location.longitude]
+    : [20.5937, 78.9629];
 
   if (isLoading) {
     return (
@@ -368,17 +509,41 @@ export default function PlacePage({ params }: { params: { slug: string } }) {
                 </Card>
               )}
 
-              {/* Reviews */}
-              {place.reviews && place.reviews.length > 0 && (
+              {/* YouTube Videos */}
+              {place.videos && place.videos.length > 0 && (
                 <Card className="border-0">
                   <CardContent className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-bold">Reviews</h2>
-                      <Button>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Write Review
-                      </Button>
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                      <Play className="h-6 w-6 text-red-500" />
+                      Videos
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {place.videos.map((video: string, index: number) => (
+                        <div key={index} className="rounded-xl overflow-hidden shadow-lg">
+                          <iframe
+                            src={video}
+                            className="w-full aspect-video"
+                            allowFullScreen
+                            title={`Video ${index + 1}`}
+                          />
+                        </div>
+                      ))}
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Reviews */}
+              <Card className="border-0">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold">Reviews</h2>
+                    <Button onClick={openReviewDialog}>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Write Review
+                    </Button>
+                  </div>
+                  {place.reviews && place.reviews.length > 0 ? (
                     <div className="space-y-6">
                       {place.reviews.map((review: any, index: number) => (
                         <div key={index} className="flex gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
@@ -397,13 +562,22 @@ export default function PlacePage({ params }: { params: { slug: string } }) {
                               </div>
                             </div>
                             <p className="text-gray-600 dark:text-gray-400">{review.comment}</p>
+                            {review.photos && review.photos.length > 0 && (
+                              <div className="flex gap-2 mt-3 overflow-x-auto">
+                                {review.photos.map((photo: string, i: number) => (
+                                  <img key={i} src={photo} alt="" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  ) : (
+                    <p className="text-center text-gray-500 py-8">No reviews yet. Be the first to share your experience!</p>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             {/* Right Sidebar */}
@@ -503,23 +677,87 @@ export default function PlacePage({ params }: { params: { slug: string } }) {
       </section>
 
       {/* Map Section */}
-      {place.location?.latitude && place.location?.longitude && (
+      {mapMarkers.length > 0 && (
         <section className="py-12 bg-white dark:bg-gray-950">
           <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-2xl font-bold mb-6">Location</h2>
-            <div className="rounded-2xl overflow-hidden h-[400px] bg-gray-100 dark:bg-gray-800">
-              <iframe
-                src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3543.768086487689!2d${place.location.longitude - 0.005}!3d${place.location.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjfCsDEwJzMwLjQiTiA3OMKwMDInMzEuNiJF!5e0!3m2!1sen!2sin!4v1234567890`}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-              />
-            </div>
+            <h2 className="text-2xl font-bold mb-2">Explore on Map</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {mapMarkers.length} locations including nearby spots, hotels & restaurants
+            </p>
+            <InteractiveMap
+              center={mapCenter}
+              zoom={12}
+              markers={mapMarkers}
+              height="500px"
+              showLegend={true}
+            />
           </div>
         </section>
       )}
+
+      {/* Write Review Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={(open) => { setReviewDialogOpen(open); if (!open) resetReviewForm(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Share Your Experience</DialogTitle>
+            <DialogDescription>Tell others about your visit to {place.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Your Rating</label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button key={star} type="button" onClick={() => setReviewRating(star)}>
+                    <Star
+                      className={`h-8 w-8 transition-colors ${
+                        star <= reviewRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Your Experience</label>
+              <Textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Share your experience, tips, or memories from your visit..."
+                rows={4}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Photos</label>
+              {reviewPhotos.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {reviewPhotos.map((photo, i) => (
+                    <div key={i} className="relative">
+                      <img src={photo} alt="" className="w-20 h-20 rounded-lg object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeReviewPhoto(i)}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button type="button" variant="outline" onClick={handlePhotoUpload} disabled={uploadingPhotos}>
+                {uploadingPhotos ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                Add Photos
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setReviewDialogOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={handleSubmitReview} disabled={submittingReview || uploadingPhotos}>
+              {submittingReview ? 'Submitting...' : 'Submit Review'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

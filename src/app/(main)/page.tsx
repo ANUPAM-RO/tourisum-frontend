@@ -32,6 +32,7 @@ import {
   Eye,
   Zap,
   Coffee,
+  Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -521,6 +522,13 @@ export default function HomePage() {
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                         <span className="text-sm font-semibold text-gray-900">{place.rating || '4.5'}</span>
                       </div>
+
+                      {/* Video badge */}
+                      {place.videos && place.videos.length > 0 && (
+                        <div className="absolute top-4 right-4 bg-red-500/90 backdrop-blur-sm rounded-full p-2">
+                          <Play className="h-4 w-4 text-white fill-white" />
+                        </div>
+                      )}
                     </div>
 
                     <CardContent className="p-5">

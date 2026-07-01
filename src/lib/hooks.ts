@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import placeService from '@/services/placeService';
 import stateService from '@/services/stateService';
+import cityService from '@/services/cityService';
 import { hotelService, restaurantService } from '@/services/hotelRestaurantService';
-import { Place, State, Hotel, Restaurant } from '@/types';
+import { Place, State, City, Hotel, Restaurant } from '@/types';
 
 export const usePlaces = (params?: { page?: number; limit?: number; category?: string; state?: string; city?: string; search?: string; minRating?: number }) => {
   return useQuery({
@@ -33,6 +34,21 @@ export const useStateBySlug = (slug: string) => {
   return useQuery({
     queryKey: ['state', slug],
     queryFn: () => stateService.getBySlug(slug),
+    enabled: !!slug,
+  });
+};
+
+export const useCities = (params?: { page?: number; limit?: number; state?: string; search?: string }) => {
+  return useQuery({
+    queryKey: ['cities', params],
+    queryFn: () => cityService.getAll(params),
+  });
+};
+
+export const useCityBySlug = (slug: string) => {
+  return useQuery({
+    queryKey: ['city', slug],
+    queryFn: () => cityService.getBySlug(slug),
     enabled: !!slug,
   });
 };
