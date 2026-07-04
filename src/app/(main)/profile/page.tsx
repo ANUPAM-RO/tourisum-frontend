@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Camera, Save, Heart, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import authService from '@/services/authService';
 
 export default function ProfilePage() {
   const { user, updateProfile, isAuthenticated } = useAuth();
@@ -15,6 +16,28 @@ export default function ProfilePage() {
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const response = await authService.getProfile();
+        if (response.success && response.data) {
+          const userData = response.data;
+          setName(userData.name || '');
+          setEmail(userData.email || '');
+          setPhone(userData.phone || '');
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile', error);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchProfile();
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -22,6 +45,17 @@ export default function ProfilePage() {
         <div className="text-center">
           <User className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Please login to view profile</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetching) {
+    return (
+      <div className="pt-20 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading profile...</p>
         </div>
       </div>
     );

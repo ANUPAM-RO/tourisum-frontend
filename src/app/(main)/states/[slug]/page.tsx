@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -14,6 +14,7 @@ import {
   Languages,
   Phone,
   Heart,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,9 +27,17 @@ import { formatRating, cn } from '@/lib/utils';
 
 export default function StatePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const { data: stateResponse, isLoading } = useStateBySlug(slug);
+  const { data: stateResponse, isLoading, refetch } = useStateBySlug(slug);
   const state = stateResponse?.data;
   const { isFavorite, toggle } = useToggleFavorite();
+
+  useEffect(() => {
+    if (state) {
+      console.log('State Data Loaded:', state);
+      console.log('Popular Places Count:', state.popularPlaces?.length || 0);
+      console.log('Popular Places Data:', state.popularPlaces);
+    }
+  }, [state]);
 
   if (isLoading) {
     return (
@@ -130,7 +139,7 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
           <Tabs defaultValue="cities" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-8">
               <TabsTrigger value="cities">Popular Cities</TabsTrigger>
-              <TabsTrigger value="places">Tourist Places</TabsTrigger>
+              <TabsTrigger value="places">Tourist Places ({places.length})</TabsTrigger>
               <TabsTrigger value="info">Travel Info</TabsTrigger>
             </TabsList>
 
@@ -233,7 +242,14 @@ export default function StatePage({ params }: { params: Promise<{ slug: string }
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">No tourist places available for this state yet.</div>
+                <div className="text-center py-12">
+                  <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">No tourist places available for this state yet.</p>
+                  <Button variant="outline" onClick={() => refetch()}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh Data
+                  </Button>
+                </div>
               )}
             </TabsContent>
 
