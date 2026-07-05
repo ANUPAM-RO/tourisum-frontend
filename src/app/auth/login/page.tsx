@@ -8,19 +8,38 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginSchemaData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register: formRegister,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginSchemaData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = async (data: LoginSchemaData) => {
     setLoading(true);
     try {
-      await login(email, password);
+      await login(data.email, data.password);
       toast.success('Login successful!');
       const stored = localStorage.getItem('user');
       const userData = stored ? JSON.parse(stored) : null;
@@ -49,7 +68,7 @@ export default function LoginPage() {
             <p className="text-gray-500">Sign in to your account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Email</label>
               <div className="relative">
@@ -57,12 +76,13 @@ export default function LoginPage() {
                 <Input
                   type="email"
                   placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12"
-                  required
+                  {...formRegister('email')}
+                  className={`pl-10 h-12 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {errors.email && (
+                <span className="text-xs text-red-500 mt-1 block">{errors.email.message}</span>
+              )}
             </div>
 
             <div>
@@ -72,10 +92,8 @@ export default function LoginPage() {
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12"
-                  required
+                  {...formRegister('password')}
+                  className={`pl-10 pr-10 h-12 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
                 <button
                   type="button"
@@ -85,6 +103,9 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {errors.password && (
+                <span className="text-xs text-red-500 mt-1 block">{errors.password.message}</span>
+              )}
             </div>
 
             <Button type="submit" className="w-full h-12" disabled={loading}>

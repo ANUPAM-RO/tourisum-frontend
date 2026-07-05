@@ -9,27 +9,48 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const registerSchema = z.object({
+  name: z.string().min(1, 'Full name is required'),
+  email: z.string().min(1, 'Email is required').email('Invalid email address'),
+  phone: z.string().optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+type RegisterSchemaData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
+  const {
+    register: formRegister,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterSchemaData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  const onSubmit = async (data: RegisterSchemaData) => {
     setLoading(true);
     try {
-      await register(name, email, password, phone);
+      await register(data.name, data.email, data.password, data.phone);
       toast.success('Registration successful!');
       router.push('/');
     } catch (error: any) {
@@ -56,7 +77,7 @@ export default function RegisterPage() {
             <p className="text-gray-500">Join us to explore Incredible India</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Full Name</label>
               <div className="relative">
@@ -64,12 +85,13 @@ export default function RegisterPage() {
                 <Input
                   type="text"
                   placeholder="Enter your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="pl-10 h-12"
-                  required
+                  {...formRegister('name')}
+                  className={`pl-10 h-12 ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {errors.name && (
+                <span className="text-xs text-red-500 mt-1 block">{errors.name.message}</span>
+              )}
             </div>
 
             <div>
@@ -79,12 +101,13 @@ export default function RegisterPage() {
                 <Input
                   type="email"
                   placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12"
-                  required
+                  {...formRegister('email')}
+                  className={`pl-10 h-12 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {errors.email && (
+                <span className="text-xs text-red-500 mt-1 block">{errors.email.message}</span>
+              )}
             </div>
 
             <div>
@@ -94,11 +117,13 @@ export default function RegisterPage() {
                 <Input
                   type="tel"
                   placeholder="Enter your phone number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="pl-10 h-12"
+                  {...formRegister('phone')}
+                  className={`pl-10 h-12 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {errors.phone && (
+                <span className="text-xs text-red-500 mt-1 block">{errors.phone.message}</span>
+              )}
             </div>
 
             <div>
@@ -108,11 +133,8 @@ export default function RegisterPage() {
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Create a password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12"
-                  required
-                  minLength={6}
+                  {...formRegister('password')}
+                  className={`pl-10 pr-10 h-12 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
                 <button
                   type="button"
@@ -122,6 +144,9 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {errors.password && (
+                <span className="text-xs text-red-500 mt-1 block">{errors.password.message}</span>
+              )}
             </div>
 
             <div>
@@ -131,12 +156,13 @@ export default function RegisterPage() {
                 <Input
                   type="password"
                   placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 h-12"
-                  required
+                  {...formRegister('confirmPassword')}
+                  className={`pl-10 h-12 ${errors.confirmPassword ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
               </div>
+              {errors.confirmPassword && (
+                <span className="text-xs text-red-500 mt-1 block">{errors.confirmPassword.message}</span>
+              )}
             </div>
 
             <Button type="submit" className="w-full h-12" disabled={loading}>

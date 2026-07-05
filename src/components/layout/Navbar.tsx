@@ -31,7 +31,7 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const pathname = usePathname();
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, loading, logout } = useAuth();
 
   const isHomePage = pathname === '/';
   const transparent = isHomePage && !isScrolled;
@@ -149,8 +149,9 @@ const Navbar = () => {
               </div>
             </form>
 
-            {/* Auth actions */}
-            {isAuthenticated ? (
+            {loading ? (
+              <div className="w-36 h-9 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" />
+            ) : isAuthenticated ? (
               <div className="flex items-center gap-1.5">
                 <Link href="/favorites">
                   <button

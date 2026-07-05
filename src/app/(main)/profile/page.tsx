@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import authService from '@/services/authService';
 
 export default function ProfilePage() {
-  const { user, updateProfile, isAuthenticated } = useAuth();
+  const { user, updateProfile, isAuthenticated, loading: authLoading } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -38,6 +38,17 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [isAuthenticated]);
+
+  if (authLoading) {
+    return (
+      <div className="pt-20 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

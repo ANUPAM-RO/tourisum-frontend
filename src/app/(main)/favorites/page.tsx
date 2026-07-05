@@ -12,11 +12,22 @@ import { useFavorites, useToggleFavorite } from '@/lib/hooks';
 import { formatRating } from '@/lib/utils';
 
 export default function FavoritesPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const { data, isLoading } = useFavorites(isAuthenticated);
   const { toggle } = useToggleFavorite();
 
   const favoritePlaces: any[] = data?.data || [];
+
+  if (loading) {
+    return (
+      <div className="pt-20 min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
