@@ -6,7 +6,7 @@ import { Clock, MapPin, Star } from 'lucide-react';
 import type { Restaurant } from '@/types';
 import { cn, formatRating } from '@/lib/utils';
 import SafeImage from '@/components/shared/SafeImage';
-import { EASE_OUT, dietLabel, formatINR, priceLevel, uniqueCuisines } from './utils';
+import { EASE_OUT, dietLabel, formatDistance, formatINR, priceLevel, uniqueCuisines } from './utils';
 
 /** The familiar Indian food-label marker: green square/dot for veg, red for non-veg. */
 export function DietMarker({ type, className }: { type: Restaurant['vegNonVeg']; className?: string }) {
@@ -94,7 +94,7 @@ export default function RestaurantCard({ restaurant, index = 0 }: RestaurantCard
           {(restaurant.address || restaurant.distance) && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-stone-500 dark:text-stone-400">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{restaurant.address || restaurant.distance}</span>
+              <span className="truncate">{restaurant.address || formatDistance(restaurant.distance)}</span>
             </p>
           )}
 

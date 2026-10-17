@@ -35,7 +35,7 @@ import {
   type Fact,
 } from '@/components/stays/DetailParts';
 import { DietMarker, PriceLevel } from '@/components/stays/RestaurantCard';
-import { EASE_OUT, dietLabel, directionsUrl, formatINR, uniqueCuisines } from '@/components/stays/utils';
+import { EASE_OUT, dietLabel, directionsUrl, formatDistance, formatINR, uniqueCuisines } from '@/components/stays/utils';
 
 /** Parses "9:00 AM", "21:30", "11 pm" into minutes after midnight. */
 function toMinutes(time?: string) {
@@ -154,7 +154,7 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ slu
     <>
       {restaurant.phone && <ContactRow icon={Phone} label="Phone" value={restaurant.phone} href={`tel:${restaurant.phone}`} />}
       {restaurant.website && <ContactRow icon={Globe} label="Website" value="Visit website" href={restaurant.website} external />}
-      {restaurant.distance && <ContactRow icon={MapPin} label="Distance" value={restaurant.distance} />}
+      {restaurant.distance && <ContactRow icon={MapPin} label="Distance" value={formatDistance(restaurant.distance)} />}
     </>
   );
   const hasContact = !!(restaurant.phone || restaurant.website || restaurant.distance);

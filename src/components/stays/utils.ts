@@ -35,6 +35,12 @@ export function amenityIcon(amenity: string): LucideIcon {
   return amenityIcons[amenity.trim().toLowerCase()] ?? Sparkles;
 }
 
+/** Rounds float noise in seeded distances: "8.100000000000001 km from city center" → "8.1 km from city center". */
+export function formatDistance(distance?: string | null) {
+  if (!distance) return '';
+  return distance.replace(/\d+\.\d+/g, (n) => String(Math.round(parseFloat(n) * 10) / 10));
+}
+
 export function formatINR(value?: number | null) {
   return `₹${Math.round(value || 0).toLocaleString('en-IN')}`;
 }

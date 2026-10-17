@@ -51,6 +51,7 @@ export default function PageHeader({
           src={image}
           width={1920}
           priority
+          hideFallback
           alt=""
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />

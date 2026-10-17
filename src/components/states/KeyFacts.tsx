@@ -44,7 +44,7 @@ export default function KeyFacts({ facts }: { facts: KeyFact[] }) {
             </span>
             <div className="min-w-0">
               <dt className="text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">{label}</dt>
-              <dd className="mt-0.5 text-sm font-semibold leading-snug text-stone-900 sm:text-base dark:text-white">{value}</dd>
+              <dd className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-stone-900 sm:text-base dark:text-white" title={typeof value === 'string' ? value : undefined}>{value}</dd>
             </div>
           </div>
         ))}

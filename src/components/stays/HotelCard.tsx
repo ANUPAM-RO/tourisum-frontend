@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Star } from 'lucide-react';
 import type { Hotel } from '@/types';
 import SafeImage from '@/components/shared/SafeImage';
-import { EASE_OUT, amenityIcon, formatINR } from './utils';
+import { EASE_OUT, amenityIcon, formatDistance, formatINR } from './utils';
 
 interface HotelCardProps {
   hotel: Hotel;
@@ -61,7 +61,7 @@ export default function HotelCard({ hotel, index = 0 }: HotelCardProps) {
           {(hotel.address || hotel.distance) && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-stone-500 dark:text-stone-400">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{hotel.address || hotel.distance}</span>
+              <span className="truncate">{hotel.address || formatDistance(hotel.distance)}</span>
             </p>
           )}
 

@@ -34,7 +34,7 @@ import {
   secondaryCta,
   type Fact,
 } from '@/components/stays/DetailParts';
-import { EASE_OUT, amenityIcon, directionsUrl, formatINR } from '@/components/stays/utils';
+import { EASE_OUT, amenityIcon, directionsUrl, formatDistance, formatINR } from '@/components/stays/utils';
 
 export default function HotelDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -99,7 +99,7 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
   const facts: Fact[] = [
     ...(hotel.starRating ? [{ icon: Star, label: 'Hotel class', value: `${hotel.starRating}-star` }] : []),
     { icon: Wallet, label: 'Price per night', value: `From ${formatINR(hotel.pricePerNight)}` },
-    ...(hotel.distance ? [{ icon: Navigation, label: 'Distance', value: hotel.distance }] : []),
+    ...(hotel.distance ? [{ icon: Navigation, label: 'Distance', value: formatDistance(hotel.distance) }] : []),
     ...(hotel.amenities?.length ? [{ icon: Sparkles, label: 'Amenities', value: `${hotel.amenities.length} included` }] : []),
   ];
 

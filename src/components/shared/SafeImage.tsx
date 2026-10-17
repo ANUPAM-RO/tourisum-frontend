@@ -10,17 +10,20 @@ interface SafeImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>,
   width?: number;
   /** Load eagerly with high priority — use only for above-the-fold hero images. */
   priority?: boolean;
+  /** Render nothing (instead of the placeholder tile) when the image is missing/broken — for backgrounds. */
+  hideFallback?: boolean;
 }
 
 /**
  * <img> with lazy loading, async decoding, Unsplash resizing and a graceful
  * placeholder when the URL is missing or broken (many seeded URLs 404).
  */
-export default function SafeImage({ src, width = 800, priority, alt = '', className, ...props }: SafeImageProps) {
+export default function SafeImage({ src, width = 800, priority, hideFallback, alt = '', className, ...props }: SafeImageProps) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const url = optimizeImage(src, width);
 
   if (!url || failedSrc === url) {
+    if (hideFallback) return null;
     return (
       <div
         role="img"
