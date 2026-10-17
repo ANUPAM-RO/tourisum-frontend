@@ -1,372 +1,204 @@
 'use client';
 
-import React, { use, useEffect } from 'react';
+import React, { use } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import {
-  MapPin,
-  Sun,
-  Cloud,
-  Droplets,
-  Star,
   ArrowRight,
-  Calendar,
+  Building2,
+  CalendarDays,
+  Compass,
+  Landmark,
   Languages,
-  Phone,
-  Heart,
+  Map as MapIcon,
+  MapPin,
   RefreshCw,
+  Thermometer,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InteractiveMap, MapMarker } from '@/components/map';
 import { createCityMarkers, createPlaceMarkers } from '@/lib/mapHelpers';
-import { useStateBySlug, useToggleFavorite } from '@/lib/hooks';
-import { formatRating, cn } from '@/lib/utils';
+import { useStateBySlug } from '@/lib/hooks';
+import PageHeader from '@/components/shared/PageHeader';
+import EmptyState from '@/components/shared/EmptyState';
+import DetailSection, { SectionNote } from '@/components/states/DetailSection';
+import InPageNav, { type InPageNavItem } from '@/components/states/InPageNav';
+import KeyFacts from '@/components/states/KeyFacts';
+import CityCard from '@/components/states/CityCard';
+import PlacesGrid from '@/components/states/PlacesGrid';
+import WeatherSeasons, { hasWeather } from '@/components/states/WeatherSeasons';
+import EmergencyNumbers from '@/components/states/EmergencyNumbers';
+import { GlancePanel, MapFrame, ghostButton, primaryButton } from '@/components/states/Sidebar';
+import { DetailNotFound, DetailSkeleton } from '@/components/states/DetailStates';
+import type { City, Place } from '@/types';
+import AgencyCard from '@/components/booking/AgencyCard';
 
 export default function StatePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const { data: stateResponse, isLoading, refetch } = useStateBySlug(slug);
+  const { data: stateResponse, isLoading, refetch, isFetching } = useStateBySlug(slug);
   const state = stateResponse?.data;
-  const { isFavorite, toggle } = useToggleFavorite();
 
-  useEffect(() => {
-    if (state) {
-      console.log('State Data Loaded:', state);
-      console.log('Popular Places Count:', state.popularPlaces?.length || 0);
-      console.log('Popular Places Data:', state.popularPlaces);
-    }
-  }, [state]);
+  if (isLoading) return <DetailSkeleton />;
+  if (!state) return <DetailNotFound kind="state" />;
 
-  if (isLoading) {
-    return (
-      <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading state details...</p>
-        </div>
-      </div>
-    );
-  }
+  const cities: City[] = Array.isArray(state.popularCities) ? state.popularCities : [];
+  const places: Place[] = Array.isArray(state.popularPlaces) ? state.popularPlaces : [];
 
-  if (!state) {
-    return (
-      <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">State not found</h2>
-          <Link href="/states">
-            <Button>Back to States</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const cities = Array.isArray(state.popularCities) ? state.popularCities : [];
-  const places = Array.isArray(state.popularPlaces) ? state.popularPlaces : [];
-
-  const mapMarkers: MapMarker[] = [
-    ...createCityMarkers(cities),
-    ...createPlaceMarkers(places),
-  ];
+  const mapMarkers: MapMarker[] = [...createCityMarkers(cities), ...createPlaceMarkers(places)];
 
   const mapCenter: [number, number] =
     cities.length > 0 && cities[0].location?.latitude && cities[0].location?.longitude
       ? [cities[0].location.latitude, cities[0].location.longitude]
       : [20.5937, 78.9629];
 
+  const showWeather = hasWeather(state.weather);
+  const climate = [state.weather?.summer && `Summer ${state.weather.summer}`, state.weather?.winter && `Winter ${state.weather.winter}`]
+    .filter(Boolean)
+    .join(' · ');
+
+  const navItems: InPageNavItem[] = [
+    { id: 'cities', label: 'Cities' },
+    { id: 'places', label: 'Places' },
+    ...(showWeather ? [{ id: 'weather', label: 'Weather' }] : []),
+    ...(mapMarkers.length > 0 ? [{ id: 'map', label: 'Map' }] : []),
+  ];
+
+  const searchHref = `/search?state=${encodeURIComponent(state.name)}`;
+
   return (
-    <div className="pt-20">
-      {/* Hero Banner */}
-      <section className="relative h-[500px] md:h-[600px]">
-        <img src={state.image} alt={state.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 max-w-7xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Badge className="mb-4 bg-white/20 text-white backdrop-blur-sm">
-              <MapPin className="h-3 w-3 mr-1" />
-              Capital: {state.capital}
-            </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">{state.name}</h1>
-            <p className="text-white/90 max-w-2xl text-lg">{state.description}</p>
-          </motion.div>
+    <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
+      <PageHeader
+        size="lg"
+        image={state.image}
+        eyebrow="State guide"
+        breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'States', href: '/states' }, { label: state.name }]}
+        title={state.name}
+        description={state.description && <p className="line-clamp-4">{state.description}</p>}
+        className="pb-8"
+      >
+        <div className="flex flex-wrap gap-3">
+          {places.length > 0 && (
+            <a href="#places" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition-opacity hover:opacity-95">
+              <Compass className="h-4 w-4" />
+              Explore {places.length} {places.length === 1 ? 'place' : 'places'}
+            </a>
+          )}
+          {mapMarkers.length > 0 && (
+            <a href="#map" className={ghostButton}>
+              <MapIcon className="h-4 w-4" />
+              View on map
+            </a>
+          )}
         </div>
-      </section>
+      </PageHeader>
 
-      {/* Quick Info */}
-      {state.weather && (
-        <section className="bg-white dark:bg-gray-950 border-b dark:border-gray-800">
-          <div className="max-w-7xl mx-auto px-4 py-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {state.weather.summer && (
-                <div className="text-center">
-                  <Sun className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Summer</p>
-                  <p className="font-semibold">{state.weather.summer}</p>
-                </div>
-              )}
-              {state.weather.winter && (
-                <div className="text-center">
-                  <Cloud className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Winter</p>
-                  <p className="font-semibold">{state.weather.winter}</p>
-                </div>
-              )}
-              {state.weather.monsoon && (
-                <div className="text-center">
-                  <Droplets className="h-8 w-8 text-cyan-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Monsoon</p>
-                  <p className="font-semibold">{state.weather.monsoon}</p>
-                </div>
-              )}
-              {state.bestTimeToVisit && (
-                <div className="text-center">
-                  <Calendar className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Best Time</p>
-                  <p className="font-semibold">{state.bestTimeToVisit}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+      <KeyFacts
+        facts={[
+          { icon: Landmark, label: 'Capital', value: state.capital },
+          { icon: CalendarDays, label: 'Best time', value: state.bestTimeToVisit },
+          { icon: Languages, label: 'Language', value: state.localLanguage },
+          { icon: Thermometer, label: 'Weather', value: climate },
+        ]}
+      />
 
-      {/* Tabs Content */}
-      <section className="py-12 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4">
-          <Tabs defaultValue="cities" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="cities">Popular Cities</TabsTrigger>
-              <TabsTrigger value="places">Tourist Places ({places.length})</TabsTrigger>
-              <TabsTrigger value="info">Travel Info</TabsTrigger>
-            </TabsList>
+      <InPageNav items={navItems} layoutId="state-nav" className="mt-10" />
 
-            <TabsContent value="cities">
-              {cities.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {cities.map((city: any, index: number) => (
-                    <motion.div
-                      key={city._id || city.slug}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Link href={`/cities/${city.slug}`}>
-                        <Card className="card-hover border-0 overflow-hidden group cursor-pointer">
-                          <div className="relative h-40 overflow-hidden">
-                            <img
-                              src={city.image}
-                              alt={city.name}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                            <div className="absolute bottom-3 left-3 text-white">
-                              <h3 className="text-lg font-bold">{city.name}</h3>
-                            </div>
-                          </div>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-center">
-                              <Badge variant="secondary">
-                                {Array.isArray(city.popularPlaces) ? city.popularPlaces.length : 0} places
-                              </Badge>
-                              <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">No cities available for this state yet.</div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="places">
-              {places.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {places.map((place: any, index: number) => (
-                    <motion.div
-                      key={place._id || place.slug}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <Link href={`/places/${place.slug}`}>
-                        <Card className="card-hover border-0 overflow-hidden group cursor-pointer h-full">
-                          <div className="relative h-48 overflow-hidden">
-                            <img
-                              src={place.images?.[0] || place.image}
-                              alt={place.name}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                            {place.category && (
-                              <Badge className="absolute top-4 left-4 bg-white/90 text-gray-900">
-                                {Array.isArray(place.category) ? place.category[0] : place.category}
-                              </Badge>
-                            )}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(place._id); }}
-                              className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                              aria-label={isFavorite(place._id) ? 'Remove from favorites' : 'Add to favorites'}
-                            >
-                              <Heart className={cn('h-4 w-4', isFavorite(place._id) && 'fill-red-500 text-red-500')} />
-                            </button>
-                            <div className="absolute bottom-4 left-4 text-white">
-                              <h3 className="text-xl font-bold">{place.name}</h3>
-                              <div className="flex items-center gap-2 text-sm text-white/80">
-                                <MapPin className="h-4 w-4" />
-                                {typeof place.city === 'object' ? place.city?.name : ''}
-                              </div>
-                            </div>
-                          </div>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-1">
-                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                <span className="font-medium">{formatRating(place.rating)}</span>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-sm text-gray-500">Entry</span>
-                                <p className="font-bold text-blue-600">{place.entryFee || 'Free'}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">No tourist places available for this state yet.</p>
-                  <Button variant="outline" onClick={() => refetch()}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh Data
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="info">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card className="border-0">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <Languages className="h-5 w-5 text-blue-600" />
-                      Local Information
-                    </h3>
-                    <div className="space-y-4">
-                      {state.localLanguage && (
-                        <div>
-                          <p className="text-sm text-gray-500">Local Language</p>
-                          <p className="font-medium">{state.localLanguage}</p>
-                        </div>
-                      )}
-                      {state.bestTimeToVisit && (
-                        <div>
-                          <p className="text-sm text-gray-500">Best Time to Visit</p>
-                          <p className="font-medium">{state.bestTimeToVisit}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm text-gray-500">Capital</p>
-                        <p className="font-medium">{state.capital}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {state.emergencyNumbers && (
-                  <Card className="border-0">
-                    <CardContent className="p-6">
-                      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <Phone className="h-5 w-5 text-red-600" />
-                        Emergency Numbers
-                      </h3>
-                      <div className="space-y-4">
-                        {state.emergencyNumbers.police && (
-                          <div className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                            <span>Police</span>
-                            <span className="font-bold text-red-600">{state.emergencyNumbers.police}</span>
-                          </div>
-                        )}
-                        {state.emergencyNumbers.ambulance && (
-                          <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <span>Ambulance</span>
-                            <span className="font-bold text-blue-600">{state.emergencyNumbers.ambulance}</span>
-                          </div>
-                        )}
-                        {state.emergencyNumbers.fire && (
-                          <div className="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                            <span>Fire</span>
-                            <span className="font-bold text-orange-600">{state.emergencyNumbers.fire}</span>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-12 lg:gap-12 lg:px-8">
+        <div className="min-w-0 space-y-16 md:space-y-20 lg:col-span-8">
+          <DetailSection
+            id="cities"
+            eyebrow="Where to go"
+            title={`Popular cities in ${state.name}`}
+            description={cities.length > 0 ? `${cities.length} ${cities.length === 1 ? 'city' : 'cities'} worth a stop.` : undefined}
+          >
+            {cities.length > 0 ? (
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {cities.map((city, index) => (
+                  <CityCard key={city._id || city.slug} city={city} index={index} />
+                ))}
               </div>
+            ) : (
+              <SectionNote>No cities available for this state yet.</SectionNote>
+            )}
+          </DetailSection>
 
-              {state.weather && (
-                <Card className="border-0 mt-8">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-bold mb-4">Weather Overview</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {state.weather.summer && (
-                        <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
-                          <Sun className="h-8 w-8 text-orange-500 mb-2" />
-                          <h4 className="font-semibold mb-1">Summer</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{state.weather.summer}</p>
-                        </div>
-                      )}
-                      {state.weather.winter && (
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                          <Cloud className="h-8 w-8 text-blue-500 mb-2" />
-                          <h4 className="font-semibold mb-1">Winter</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{state.weather.winter}</p>
-                        </div>
-                      )}
-                      {state.weather.monsoon && (
-                        <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl">
-                          <Droplets className="h-8 w-8 text-cyan-500 mb-2" />
-                          <h4 className="font-semibold mb-1">Monsoon</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{state.weather.monsoon}</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          </Tabs>
+          <DetailSection
+            id="places"
+            eyebrow="Things to see"
+            title="Popular tourist places"
+            description={places.length > 0 ? 'Landmarks, nature spots and experiences loved by travellers.' : undefined}
+            action={
+              places.length > 0 ? (
+                <Link href={searchHref} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-stone-900 hover:text-orange-600 dark:text-white">
+                  Search all
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              ) : undefined
+            }
+          >
+            {places.length > 0 ? (
+              <PlacesGrid places={places} layoutId="state-place-cats" />
+            ) : (
+              <EmptyState
+                icon={MapPin}
+                title="No tourist places yet"
+                description={`We're still adding places for ${state.name}.`}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    className="inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-5 py-2.5 text-sm font-semibold text-stone-800 transition-colors hover:border-orange-400 hover:text-orange-600 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+                  >
+                    <RefreshCw className={isFetching ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                    Refresh data
+                  </button>
+                }
+              />
+            )}
+          </DetailSection>
+
+          {showWeather && (
+            <DetailSection id="weather" eyebrow="When to go" title="Weather by season" description={state.bestTimeToVisit ? `Best time to visit: ${state.bestTimeToVisit}` : undefined}>
+              <WeatherSeasons weather={state.weather} />
+            </DetailSection>
+          )}
+
+          {mapMarkers.length > 0 && (
+            <DetailSection
+              id="map"
+              eyebrow="Map"
+              title="Explore on the map"
+              description={`${mapMarkers.length} cities and tourist places in ${state.name}.`}
+            >
+              <MapFrame>
+                <InteractiveMap center={mapCenter} zoom={8} markers={mapMarkers} height="480px" showLegend={true} />
+              </MapFrame>
+            </DetailSection>
+          )}
         </div>
-      </section>
 
-      {/* Map Section */}
-      {mapMarkers.length > 0 && (
-        <section className="py-12 bg-white dark:bg-gray-950">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-2xl font-bold mb-2">Explore on Map</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {mapMarkers.length} cities and tourist places in {state.name}
-            </p>
-            <InteractiveMap
-              center={mapCenter}
-              zoom={8}
-              markers={mapMarkers}
-              height="500px"
-              showLegend={true}
+        <aside id="essentials" className="scroll-mt-36 lg:col-span-4 lg:scroll-mt-40">
+          <AgencyCard destination={state.name} className="mb-5" />
+          <div className="space-y-5 lg:sticky lg:top-[140px]">
+            <GlancePanel
+              title="At a glance"
+              items={[
+                { icon: Landmark, label: 'Capital', value: state.capital },
+                { icon: Languages, label: 'Language', value: state.localLanguage },
+                { icon: CalendarDays, label: 'Best time', value: state.bestTimeToVisit },
+                { icon: Building2, label: 'Cities', value: cities.length || undefined },
+                { icon: MapPin, label: 'Places', value: places.length || undefined },
+              ]}
+              footer={
+                <Link href={searchHref} className={primaryButton}>
+                  <Compass className="h-4 w-4" />
+                  Find places in {state.name}
+                </Link>
+              }
             />
+            <EmergencyNumbers numbers={state.emergencyNumbers} />
           </div>
-        </section>
-      )}
+        </aside>
+      </div>
     </div>
   );
 }

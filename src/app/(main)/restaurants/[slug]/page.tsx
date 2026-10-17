@@ -1,62 +1,115 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  MapPin,
-  Star,
-  Heart,
-  Share2,
-  Phone,
-  Globe,
-  Clock,
-  Mail,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  IndianRupee,
-  Navigation,
+  ArrowLeft,
   Calendar,
+  ChefHat,
+  Clock,
+  Globe,
+  IndianRupee,
+  Leaf,
+  MapPin,
+  Navigation,
+  Phone,
+  Star,
+  UtensilsCrossed,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { InteractiveMap, MapMarker } from '@/components/map';
 import { useRestaurantBySlug } from '@/lib/hooks';
-import { formatRating } from '@/lib/utils';
+import { cn, formatRating } from '@/lib/utils';
+import EmptyState from '@/components/shared/EmptyState';
+import {
+  Breadcrumbs,
+  ContactRow,
+  DetailGallery,
+  DetailSection,
+  DetailSkeleton,
+  FactsStrip,
+  MobileActionBar,
+  ShareButton,
+  primaryCta,
+  secondaryCta,
+  type Fact,
+} from '@/components/stays/DetailParts';
+import { DietMarker, PriceLevel } from '@/components/stays/RestaurantCard';
+import { EASE_OUT, dietLabel, directionsUrl, formatINR, uniqueCuisines } from '@/components/stays/utils';
+
+/** Parses "9:00 AM", "21:30", "11 pm" into minutes after midnight. */
+function toMinutes(time?: string) {
+  if (!time) return null;
+  const m = time.trim().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  const period = m[3]?.toLowerCase();
+  if (period === 'pm' && h < 12) h += 12;
+  if (period === 'am' && h === 12) h = 0;
+  if (h > 24 || min > 59) return null;
+  return h * 60 + min;
+}
+
+/** "Open now" pill — computed after mount so server and client markup always match. */
+function OpenStatus({ opening, closing }: { opening?: string; closing?: string }) {
+  const [open, setOpen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const start = toMinutes(opening);
+    const end = toMinutes(closing);
+    if (start === null || end === null) return;
+    const now = new Date();
+    const mins = now.getHours() * 60 + now.getMinutes();
+    // Handles venues that close after midnight.
+    setOpen(end > start ? mins >= start && mins < end : mins >= start || mins < end);
+  }, [opening, closing]);
+
+  if (open === null) return null;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
+        open
+          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+          : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300'
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', open ? 'bg-emerald-500' : 'bg-stone-400')} />
+      {open ? 'Open now' : 'Closed now'}
+    </span>
+  );
+}
 
 export default function RestaurantDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [selectedImage, setSelectedImage] = useState(0);
 
   const { data: restaurantResponse, isLoading } = useRestaurantBySlug(slug);
   const restaurant = restaurantResponse?.data;
 
-  if (isLoading) {
+  if (isLoading) return <DetailSkeleton />;
+
+  if (!restaurant) {
     return (
-      <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading restaurant details...</p>
+      <div className="min-h-screen bg-stone-50 px-4 pt-32 dark:bg-stone-950">
+        <div className="mx-auto max-w-xl">
+          <EmptyState
+            icon={UtensilsCrossed}
+            title="Restaurant not found"
+            description="This restaurant may have been removed or the link is incorrect."
+            action={
+              <Link href="/restaurants" className={`${primaryCta} h-11 text-sm`}>
+                <ArrowLeft className="h-4 w-4" />
+                Back to restaurants
+              </Link>
+            }
+          />
         </div>
       </div>
     );
   }
 
-  if (!restaurant) {
-    return (
-      <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Restaurant not found</h2>
-          <Link href="/restaurants">
-            <Button>Back to Restaurants</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const cuisines = uniqueCuisines(restaurant.cuisine);
 
   const mapMarkers: MapMarker[] = [];
   if (restaurant.location?.latitude && restaurant.location?.longitude) {
@@ -68,7 +121,7 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ slu
       type: 'restaurant',
       description: restaurant.address,
       extraInfo: {
-        ...(restaurant.cuisine && { Cuisine: Array.isArray(restaurant.cuisine) ? restaurant.cuisine.join(', ') : restaurant.cuisine }),
+        ...(cuisines.length > 0 && { Cuisine: cuisines.join(', ') }),
         ...(restaurant.averageCost && { 'Avg Cost': `₹${restaurant.averageCost}/person` }),
         ...(restaurant.rating && { Rating: `${restaurant.rating}/5` }),
       },
@@ -80,247 +133,273 @@ export default function RestaurantDetailPage({ params }: { params: Promise<{ slu
       ? [restaurant.location.latitude, restaurant.location.longitude]
       : [20.5937, 78.9629];
 
+  const directions = directionsUrl(restaurant);
+  const hours = [restaurant.openingTime, restaurant.closingTime].filter(Boolean).join(' – ');
+
+  // No reservation system yet — reserve via phone first, then the restaurant's own site.
+  const reserveAction = restaurant.phone
+    ? { href: `tel:${restaurant.phone}`, label: 'Call to reserve', external: false }
+    : restaurant.website
+    ? { href: restaurant.website, label: 'Reserve online', external: true }
+    : null;
+
+  const facts: Fact[] = [
+    { icon: Star, label: 'Rating', value: `${formatRating(restaurant.rating)} / 5` },
+    ...(restaurant.averageCost ? [{ icon: IndianRupee, label: 'Average cost', value: `${formatINR(restaurant.averageCost)} for one` }] : []),
+    ...(hours ? [{ icon: Clock, label: 'Hours', value: hours }] : []),
+    ...(restaurant.vegNonVeg ? [{ icon: Leaf, label: 'Food type', value: dietLabel[restaurant.vegNonVeg] ?? restaurant.vegNonVeg }] : []),
+  ];
+
+  const contactRows = (
+    <>
+      {restaurant.phone && <ContactRow icon={Phone} label="Phone" value={restaurant.phone} href={`tel:${restaurant.phone}`} />}
+      {restaurant.website && <ContactRow icon={Globe} label="Website" value="Visit website" href={restaurant.website} external />}
+      {restaurant.distance && <ContactRow icon={MapPin} label="Distance" value={restaurant.distance} />}
+    </>
+  );
+  const hasContact = !!(restaurant.phone || restaurant.website || restaurant.distance);
+
   return (
-    <div className="pt-20">
-      {/* Hero Gallery */}
-      <section className="relative">
-        <div className="relative h-[400px] md:h-[500px] overflow-hidden">
-          <img
-            src={restaurant.images?.[selectedImage] || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200'}
-            alt={restaurant.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+    <div className="min-h-screen bg-stone-50 pb-28 pt-16 dark:bg-stone-950 lg:pb-16 lg:pt-[68px]">
+      {/* Title + gallery */}
+      <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 md:pt-8 lg:px-8">
+        <Breadcrumbs
+          items={[{ label: 'Home', href: '/' }, { label: 'Restaurants', href: '/restaurants' }, { label: restaurant.name }]}
+        />
 
-          {restaurant.images && restaurant.images.length > 1 && (
-            <>
-              <button
-                onClick={() => setSelectedImage((prev) => (prev === 0 ? restaurant.images!.length - 1 : prev - 1))}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full hover:bg-white transition-colors shadow-lg"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-              <button
-                onClick={() => setSelectedImage((prev) => (prev === restaurant.images!.length - 1 ? 0 : prev + 1))}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full hover:bg-white transition-colors shadow-lg"
-              >
-                <ChevronRight className="h-6 w-6" />
-              </button>
-            </>
-          )}
-
-          <div className="absolute top-4 right-4 flex gap-2">
-            <Button size="icon" variant="secondary" className="rounded-full bg-white/90 hover:bg-white">
-              <Heart className="h-5 w-5" />
-            </Button>
-            <Button size="icon" variant="secondary" className="rounded-full bg-white/90 hover:bg-white">
-              <Share2 className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 max-w-7xl mx-auto">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {restaurant.vegNonVeg && (
-                  <Badge className={
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE_OUT }}
+          className="mb-6 mt-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+        >
+          <div className="min-w-0">
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              {restaurant.vegNonVeg && (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
                     restaurant.vegNonVeg === 'veg'
-                      ? 'bg-green-500 text-white'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
                       : restaurant.vegNonVeg === 'non-veg'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-orange-500 text-white'
-                  }>
-                    {restaurant.vegNonVeg === 'veg' ? 'Pure Veg' : restaurant.vegNonVeg === 'non-veg' ? 'Non-Veg' : 'Veg & Non-Veg'}
-                  </Badge>
-                )}
-                {Array.from(new Set(restaurant.cuisine)).map((cat: any) => (
-                  <Badge key={cat} className="bg-white/20 text-white backdrop-blur-sm">
-                    {cat}
-                  </Badge>
-                ))}
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{restaurant.name}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-white/90">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
+                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                      : 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-200'
+                  )}
+                >
+                  <DietMarker type={restaurant.vegNonVeg} />
+                  {dietLabel[restaurant.vegNonVeg] ?? restaurant.vegNonVeg}
+                </span>
+              )}
+              {cuisines.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950/40 dark:text-orange-300"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+            <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-stone-900 dark:text-white md:text-5xl">
+              {restaurant.name}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-stone-600 dark:text-stone-400">
+              <span className="flex items-center gap-1 font-semibold text-stone-900 dark:text-white">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                {formatRating(restaurant.rating)}
+              </span>
+              <PriceLevel cost={restaurant.averageCost} />
+              {restaurant.address && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 shrink-0 text-orange-500" />
                   {restaurant.address}
+                </span>
+              )}
+              <OpenStatus opening={restaurant.openingTime} closing={restaurant.closingTime} />
+            </div>
+          </div>
+          <ShareButton title={restaurant.name} className="self-start md:self-auto" />
+        </motion.div>
+
+        <DetailGallery images={restaurant.images ?? []} alt={restaurant.name} />
+      </section>
+
+      {/* Main content */}
+      <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="min-w-0 space-y-6 lg:col-span-2">
+            <FactsStrip facts={facts} />
+
+            {restaurant.description && (
+              <DetailSection eyebrow="Overview" title="About">
+                <p className="whitespace-pre-line leading-relaxed text-stone-600 dark:text-stone-300">{restaurant.description}</p>
+              </DetailSection>
+            )}
+
+            {cuisines.length > 0 && (
+              <DetailSection eyebrow="On the menu" title="Cuisine">
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {cuisines.map((c) => (
+                    <li
+                      key={c}
+                      className="flex items-center gap-3 rounded-2xl border border-stone-200/80 bg-stone-50/60 p-3.5 dark:border-stone-800 dark:bg-stone-800/40"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-orange-600 shadow-sm dark:bg-stone-900 dark:text-orange-400">
+                        <ChefHat className="h-[18px] w-[18px]" />
+                      </span>
+                      <span className="text-sm font-medium text-stone-800 dark:text-stone-200">{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </DetailSection>
+            )}
+
+            {(restaurant.openingTime || restaurant.closingTime) && (
+              <DetailSection eyebrow="Plan your visit" title="Timings">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {restaurant.openingTime && (
+                    <div className="rounded-2xl border border-stone-200/80 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-800/40">
+                      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">Opens</p>
+                      <p className="text-lg font-semibold text-stone-900 dark:text-white">{restaurant.openingTime}</p>
+                    </div>
+                  )}
+                  {restaurant.closingTime && (
+                    <div className="rounded-2xl border border-stone-200/80 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-800/40">
+                      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">Closes</p>
+                      <p className="text-lg font-semibold text-stone-900 dark:text-white">{restaurant.closingTime}</p>
+                    </div>
+                  )}
                 </div>
-                {restaurant.rating && (
-                  <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{formatRating(restaurant.rating)}</span>
-                  </div>
-                )}
-                {restaurant.averageCost && (
-                  <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
-                    <IndianRupee className="h-4 w-4" />
-                    <span className="font-semibold">₹{restaurant.averageCost}</span>
-                    <span className="text-sm">per person</span>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        </div>
+              </DetailSection>
+            )}
 
-        {restaurant.images && restaurant.images.length > 1 && (
-          <div className="bg-white dark:bg-gray-950 border-b dark:border-gray-800">
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {restaurant.images.map((img: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`relative w-24 h-16 rounded-lg overflow-hidden flex-shrink-0 ${
-                      selectedImage === index ? 'ring-2 ring-blue-600' : ''
-                    }`}
+            <DetailSection id="location" eyebrow="Getting there" title="Location">
+              {restaurant.address && (
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="flex items-start gap-2 text-stone-600 dark:text-stone-300">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
+                    {restaurant.address}
+                  </p>
+                  {directions && (
+                    <a href={directions} target="_blank" rel="noopener noreferrer" className={`${secondaryCta} h-10 shrink-0 text-sm`}>
+                      <Navigation className="h-4 w-4" />
+                      Directions
+                    </a>
+                  )}
+                </div>
+              )}
+              {mapMarkers.length > 0 ? (
+                <div className="overflow-hidden rounded-2xl">
+                  <InteractiveMap center={mapCenter} zoom={14} markers={mapMarkers} height="400px" showLegend={false} />
+                </div>
+              ) : (
+                <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-2xl bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                  <MapPin className="h-6 w-6" />
+                  <p className="text-sm">Map location not available</p>
+                </div>
+              )}
+            </DetailSection>
+
+            {hasContact && (
+              <div className="rounded-3xl border border-stone-200/80 bg-white p-6 dark:border-stone-800 dark:bg-stone-900 lg:hidden">
+                <h3 className="mb-3 font-display text-xl font-semibold tracking-tight text-stone-900 dark:text-white">Contact</h3>
+                <div className="space-y-1">{contactRows}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Reservation summary */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-[88px] rounded-3xl border border-stone-200/80 bg-white p-6 shadow-xl shadow-stone-200/50 dark:border-stone-800 dark:bg-stone-900 dark:shadow-black/30">
+              {restaurant.averageCost > 0 && (
+                <>
+                  <p className="text-sm text-stone-500 dark:text-stone-400">Average cost</p>
+                  <p className="mt-1 text-4xl font-bold tracking-tight text-stone-900 dark:text-white">
+                    {formatINR(restaurant.averageCost)}
+                    <span className="ml-1 text-base font-normal text-stone-500 dark:text-stone-400">for one</span>
+                  </p>
+                </>
+              )}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  {formatRating(restaurant.rating)}
+                </span>
+                <OpenStatus opening={restaurant.openingTime} closing={restaurant.closingTime} />
+              </div>
+
+              {hours && (
+                <p className="mt-4 flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300">
+                  <Clock className="h-4 w-4 text-stone-400" />
+                  {hours}
+                </p>
+              )}
+
+              <div className="mt-6 space-y-2.5">
+                {reserveAction && (
+                  <a
+                    href={reserveAction.href}
+                    {...(reserveAction.external && { target: '_blank', rel: 'noopener noreferrer' })}
+                    className={`${primaryCta} h-12 w-full text-base`}
                   >
-                    <img src={img} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
+                    <Calendar className="h-4 w-4" />
+                    {reserveAction.label}
+                  </a>
+                )}
+                {directions && (
+                  <a href={directions} target="_blank" rel="noopener noreferrer" className={`${secondaryCta} h-12 w-full text-sm`}>
+                    <Navigation className="h-4 w-4" />
+                    Get directions
+                  </a>
+                )}
               </div>
-            </div>
-          </div>
-        )}
-      </section>
 
-      {/* Main Content */}
-      <section className="py-12 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              {restaurant.description && (
-                <Card className="border-0">
-                  <CardContent className="p-6">
-                    <h2 className="text-2xl font-bold mb-4">About</h2>
-                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{restaurant.description}</p>
-                  </CardContent>
-                </Card>
+              {hasContact && (
+                <div className="mt-6 space-y-1 border-t border-stone-100 pt-5 dark:border-stone-800">{contactRows}</div>
               )}
-
-              {(restaurant.openingTime || restaurant.closingTime) && (
-                <Card className="border-0">
-                  <CardContent className="p-6">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                      <Clock className="h-6 w-6 text-blue-600" />
-                      Timings
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {restaurant.openingTime && (
-                        <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl">
-                          <p className="text-sm text-gray-500 mb-1">Opens</p>
-                          <p className="font-semibold">{restaurant.openingTime}</p>
-                        </div>
-                      )}
-                      {restaurant.closingTime && (
-                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl">
-                          <p className="text-sm text-gray-500 mb-1">Closes</p>
-                          <p className="font-semibold">{restaurant.closingTime}</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className="border-0">
-                <CardContent className="p-6">
-                  <h2 className="text-2xl font-bold mb-4">Location</h2>
-                  {mapMarkers.length > 0 ? (
-                    <InteractiveMap
-                      center={mapCenter}
-                      zoom={14}
-                      markers={mapMarkers}
-                      height="400px"
-                      showLegend={false}
-                    />
-                  ) : (
-                    <div className="rounded-2xl overflow-hidden h-[400px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                      <p className="text-gray-500">Map location not available</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
-
-            <div className="space-y-6">
-              <Card className="border-0 sticky top-24">
-                <CardContent className="p-6">
-                  {restaurant.averageCost && (
-                    <div className="text-center mb-6">
-                      <p className="text-sm text-gray-500">Average Cost</p>
-                      <p className="text-4xl font-bold text-emerald-600">₹{restaurant.averageCost}</p>
-                      <p className="text-sm text-gray-500">per person</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-4 mb-6">
-                    {restaurant.openingTime && (
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <Clock className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <p className="text-sm text-gray-500">Opens at</p>
-                          <p className="font-medium">{restaurant.openingTime}</p>
-                        </div>
-                      </div>
-                    )}
-                    {restaurant.distance && (
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <MapPin className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <p className="text-sm text-gray-500">Distance</p>
-                          <p className="font-medium">{restaurant.distance}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <Button className="w-full h-12 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Reserve Table
-                    </Button>
-                    <Button variant="outline" className="w-full h-12">
-                      <Navigation className="h-4 w-4 mr-2" />
-                      Get Directions
-                    </Button>
-                  </div>
-
-                  <div className="mt-6 space-y-3">
-                    {restaurant.phone && (
-                      <a href={`tel:${restaurant.phone}`} className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                        <Phone className="h-5 w-5 text-blue-600" />
-                        <span className="text-sm">{restaurant.phone}</span>
-                      </a>
-                    )}
-                    {restaurant.website && (
-                      <a href={restaurant.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                        <Globe className="h-5 w-5 text-blue-600" />
-                        <span className="text-sm flex items-center gap-1">
-                          Visit Website
-                          <ExternalLink className="h-3 w-3" />
-                        </span>
-                      </a>
-                    )}
-                  </div>
-
-                  {restaurant.cuisine && restaurant.cuisine.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="font-semibold mb-3">Cuisine</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {Array.from(new Set(restaurant.cuisine)).map((c: any) => (
-                          <Badge key={c} className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                            {c}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          </aside>
         </div>
       </section>
+
+      <MobileActionBar>
+        <div className="min-w-0">
+          {restaurant.averageCost > 0 ? (
+            <p className="text-lg font-bold leading-tight text-stone-900 dark:text-white">
+              {formatINR(restaurant.averageCost)}
+              <span className="ml-1 text-sm font-normal text-stone-500 dark:text-stone-400">for one</span>
+            </p>
+          ) : (
+            <p className="truncate text-sm font-semibold text-stone-900 dark:text-white">{restaurant.name}</p>
+          )}
+          <p className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
+            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            {formatRating(restaurant.rating)}
+            {hours && <span className="truncate">· {hours}</span>}
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          {directions && (
+            <a
+              href={directions}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Get directions"
+              className={`${secondaryCta} h-11 w-11 px-0`}
+            >
+              <Navigation className="h-4 w-4" />
+            </a>
+          )}
+          {reserveAction && (
+            <a
+              href={reserveAction.href}
+              {...(reserveAction.external && { target: '_blank', rel: 'noopener noreferrer' })}
+              className={`${primaryCta} h-11 text-sm`}
+            >
+              Reserve
+            </a>
+          )}
+        </div>
+      </MobileActionBar>
     </div>
   );
 }

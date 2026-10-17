@@ -1,77 +1,70 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { use } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  MapPin,
-  Star,
-  Heart,
-  Share2,
-  Phone,
-  Globe,
-  Wifi,
-  Car,
-  Coffee,
-  Waves,
-  Dumbbell,
-  UtensilsCrossed,
-  Plane,
+  ArrowLeft,
   BedDouble,
-  Clock,
-  Mail,
+  CheckCircle2,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
+  Globe,
+  Mail,
+  MapPin,
+  Navigation,
+  Phone,
+  Sparkles,
+  Star,
+  Wallet,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { InteractiveMap, MapMarker } from '@/components/map';
 import { useHotelBySlug } from '@/lib/hooks';
-
-const amenityIcons: Record<string, React.ReactNode> = {
-  'Free WiFi': <Wifi className="h-5 w-5" />,
-  'Parking': <Car className="h-5 w-5" />,
-  'Breakfast': <Coffee className="h-5 w-5" />,
-  'Swimming Pool': <Waves className="h-5 w-5" />,
-  'Gym': <Dumbbell className="h-5 w-5" />,
-  'Spa': <Waves className="h-5 w-5" />,
-  'Restaurant': <UtensilsCrossed className="h-5 w-5" />,
-  'Airport Shuttle': <Plane className="h-5 w-5" />,
-};
+import type { Hotel } from '@/types';
+import EmptyState from '@/components/shared/EmptyState';
+import {
+  Breadcrumbs,
+  ContactRow,
+  DetailGallery,
+  DetailSection,
+  DetailSkeleton,
+  FactsStrip,
+  MobileActionBar,
+  ShareButton,
+  primaryCta,
+  secondaryCta,
+  type Fact,
+} from '@/components/stays/DetailParts';
+import { EASE_OUT, amenityIcon, directionsUrl, formatINR } from '@/components/stays/utils';
 
 export default function HotelDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [selectedImage, setSelectedImage] = useState(0);
 
   const { data: hotelResponse, isLoading } = useHotelBySlug(slug);
   const hotel = hotelResponse?.data;
 
-  if (isLoading) {
+  if (isLoading) return <DetailSkeleton />;
+
+  if (!hotel) {
     return (
-      <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading hotel details...</p>
+      <div className="min-h-screen bg-stone-50 px-4 pt-32 dark:bg-stone-950">
+        <div className="mx-auto max-w-xl">
+          <EmptyState
+            icon={BedDouble}
+            title="Hotel not found"
+            description="This stay may have been removed or the link is incorrect."
+            action={
+              <Link href="/hotels" className={`${primaryCta} h-11 text-sm`}>
+                <ArrowLeft className="h-4 w-4" />
+                Back to hotels
+              </Link>
+            }
+          />
         </div>
       </div>
     );
   }
 
-  if (!hotel) {
-    return (
-      <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Hotel not found</h2>
-          <Link href="/hotels">
-            <Button>Back to Hotels</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const email = (hotel as Hotel & { email?: string }).email;
 
   const mapMarkers: MapMarker[] = [];
   if (hotel.location?.latitude && hotel.location?.longitude) {
@@ -94,176 +87,241 @@ export default function HotelDetailPage({ params }: { params: Promise<{ slug: st
       ? [hotel.location.latitude, hotel.location.longitude]
       : [20.5937, 78.9629];
 
+  const directions = directionsUrl(hotel);
+
+  // There is no booking engine yet, so "Book" routes to the most direct real channel.
+  const bookAction = hotel.website
+    ? { href: hotel.website, label: 'Book on hotel website', external: true, icon: ExternalLink }
+    : hotel.phone
+    ? { href: `tel:${hotel.phone}`, label: 'Call to book', external: false, icon: Phone }
+    : null;
+
+  const facts: Fact[] = [
+    ...(hotel.starRating ? [{ icon: Star, label: 'Hotel class', value: `${hotel.starRating}-star` }] : []),
+    { icon: Wallet, label: 'Price per night', value: `From ${formatINR(hotel.pricePerNight)}` },
+    ...(hotel.distance ? [{ icon: Navigation, label: 'Distance', value: hotel.distance }] : []),
+    ...(hotel.amenities?.length ? [{ icon: Sparkles, label: 'Amenities', value: `${hotel.amenities.length} included` }] : []),
+  ];
+
+  const BookIcon = bookAction?.icon;
+
   return (
-    <div className="pt-20">
-      {/* Hero Gallery */}
-      <section className="relative">
-        <div className="relative h-[500px] md:h-[600px] overflow-hidden">
-          <img
-            src={hotel.images?.[selectedImage] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200'}
-            alt={hotel.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+    <div className="min-h-screen bg-stone-50 pb-28 pt-16 dark:bg-stone-950 lg:pb-16 lg:pt-[68px]">
+      {/* Title + gallery */}
+      <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 md:pt-8 lg:px-8">
+        <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Hotels', href: '/hotels' }, { label: hotel.name }]} />
 
-          {hotel.images && hotel.images.length > 1 && (
-            <>
-              <button
-                onClick={() => setSelectedImage((prev) => (prev === 0 ? hotel.images!.length - 1 : prev - 1))}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full hover:bg-white transition-colors shadow-lg"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-              <button
-                onClick={() => setSelectedImage((prev) => (prev === hotel.images!.length - 1 ? 0 : prev + 1))}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/90 rounded-full hover:bg-white transition-colors shadow-lg"
-              >
-                <ChevronRight className="h-6 w-6" />
-              </button>
-            </>
-          )}
-
-          <div className="absolute top-4 right-4 flex gap-2">
-            <Button size="icon" variant="secondary" className="rounded-full bg-white/90 hover:bg-white">
-              <Heart className="h-5 w-5" />
-            </Button>
-            <Button size="icon" variant="secondary" className="rounded-full bg-white/90 hover:bg-white">
-              <Share2 className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 max-w-7xl mx-auto">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {hotel.category?.map((cat: string) => (
-                  <Badge key={cat} className="bg-white/20 text-white backdrop-blur-sm">
-                    {cat}
-                  </Badge>
-                ))}
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{hotel.name}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-white/90">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  {hotel.address}
-                </div>
-                <div className="flex items-center gap-1">
-                  {[...Array(hotel.starRating || 0)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-
-        {hotel.images && hotel.images.length > 1 && (
-          <div className="bg-white dark:bg-gray-950 border-b dark:border-gray-800">
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {hotel.images.map((img: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`relative w-24 h-16 rounded-lg overflow-hidden flex-shrink-0 ${
-                      selectedImage === index ? 'ring-2 ring-blue-600' : ''
-                    }`}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE_OUT }}
+          className="mb-6 mt-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+        >
+          <div className="min-w-0">
+            {hotel.category?.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {hotel.category.map((cat) => (
+                  <span
+                    key={cat}
+                    className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950/40 dark:text-orange-300"
                   >
-                    <img src={img} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
-                  </button>
+                    {cat}
+                  </span>
                 ))}
               </div>
+            )}
+            <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-stone-900 dark:text-white md:text-5xl">
+              {hotel.name}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-stone-600 dark:text-stone-400">
+              {hotel.starRating > 0 && (
+                <span className="flex items-center gap-0.5" aria-label={`${hotel.starRating} star hotel`}>
+                  {Array.from({ length: hotel.starRating }, (_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </span>
+              )}
+              {hotel.address && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 shrink-0 text-orange-500" />
+                  {hotel.address}
+                </span>
+              )}
             </div>
           </div>
-        )}
+          <ShareButton title={hotel.name} className="self-start md:self-auto" />
+        </motion.div>
+
+        <DetailGallery images={hotel.images ?? []} alt={hotel.name} />
       </section>
 
-      {/* Main Content */}
-      <section className="py-12 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              <Card className="border-0">
-                <CardContent className="p-6">
-                  <h2 className="text-2xl font-bold mb-4">About This Hotel</h2>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{hotel.description}</p>
-                </CardContent>
-              </Card>
+      {/* Main content */}
+      <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="min-w-0 space-y-6 lg:col-span-2">
+            <FactsStrip facts={facts} />
 
-              {hotel.amenities && hotel.amenities.length > 0 && (
-                <Card className="border-0">
-                  <CardContent className="p-6">
-                    <h2 className="text-2xl font-bold mb-6">Amenities</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {hotel.amenities.map((amenity: string) => (
-                        <div key={amenity} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                          <div className="text-blue-600">
-                            {amenityIcons[amenity]}
-                          </div>
-                          <span className="text-sm font-medium">{amenity}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+            {hotel.description && (
+              <DetailSection eyebrow="Overview" title="About this hotel">
+                <p className="whitespace-pre-line leading-relaxed text-stone-600 dark:text-stone-300">{hotel.description}</p>
+              </DetailSection>
+            )}
 
-              <Card className="border-0">
-                <CardContent className="p-6">
-                  <h2 className="text-2xl font-bold mb-4">Location</h2>
-                  {mapMarkers.length > 0 ? (
-                    <InteractiveMap
-                      center={mapCenter}
-                      zoom={14}
-                      markers={mapMarkers}
-                      height="400px"
-                      showLegend={false}
-                    />
-                  ) : (
-                    <div className="rounded-2xl overflow-hidden h-[400px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                      <p className="text-gray-500">Map location not available</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <Card className="border-0 sticky top-24">
-                <CardContent className="p-6">
-                  <div className="text-center mb-6">
-                    <p className="text-sm text-gray-500">Starting from</p>
-                    <p className="text-4xl font-bold text-blue-600">₹{(hotel.pricePerNight || 0).toLocaleString()}</p>
-                    <p className="text-sm text-gray-500">per night</p>
-                  </div>
-
-                  <Button className="w-full h-14 text-lg bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 shadow-lg">
-                    Book Now
-                  </Button>
-
-                  <div className="mt-6 space-y-3">
-                    {hotel.phone && (
-                      <a href={`tel:${hotel.phone}`} className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                        <Phone className="h-5 w-5 text-blue-600" />
-                        <span className="text-sm">{hotel.phone}</span>
-                      </a>
-                    )}
-                    {hotel.website && (
-                      <a href={hotel.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                        <Globe className="h-5 w-5 text-blue-600" />
-                        <span className="text-sm flex items-center gap-1">
-                          Visit Website
-                          <ExternalLink className="h-3 w-3" />
+            {hotel.amenities && hotel.amenities.length > 0 && (
+              <DetailSection eyebrow="What's included" title="Amenities">
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                  {hotel.amenities.map((amenity) => {
+                    const Icon = amenityIcon(amenity);
+                    return (
+                      <li
+                        key={amenity}
+                        className="flex items-center gap-3 rounded-2xl border border-stone-200/80 bg-stone-50/60 p-3.5 dark:border-stone-800 dark:bg-stone-800/40"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-orange-600 shadow-sm dark:bg-stone-900 dark:text-orange-400">
+                          <Icon className="h-[18px] w-[18px]" />
                         </span>
-                      </a>
+                        <span className="text-sm font-medium text-stone-800 dark:text-stone-200">{amenity}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </DetailSection>
+            )}
+
+            <DetailSection id="location" eyebrow="Getting there" title="Location">
+              {hotel.address && (
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="flex items-start gap-2 text-stone-600 dark:text-stone-300">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
+                    {hotel.address}
+                  </p>
+                  {directions && (
+                    <a href={directions} target="_blank" rel="noopener noreferrer" className={`${secondaryCta} h-10 shrink-0 text-sm`}>
+                      <Navigation className="h-4 w-4" />
+                      Directions
+                    </a>
+                  )}
+                </div>
+              )}
+              {mapMarkers.length > 0 ? (
+                <div className="overflow-hidden rounded-2xl">
+                  <InteractiveMap center={mapCenter} zoom={14} markers={mapMarkers} height="400px" showLegend={false} />
+                </div>
+              ) : (
+                <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-2xl bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                  <MapPin className="h-6 w-6" />
+                  <p className="text-sm">Map location not available</p>
+                </div>
+              )}
+            </DetailSection>
+          </div>
+
+          {/* Booking summary */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-[88px] space-y-4">
+              <div className="rounded-3xl border border-stone-200/80 bg-white p-6 shadow-xl shadow-stone-200/50 dark:border-stone-800 dark:bg-stone-900 dark:shadow-black/30">
+                <p className="text-sm text-stone-500 dark:text-stone-400">Starting from</p>
+                <p className="mt-1 text-4xl font-bold tracking-tight text-stone-900 dark:text-white">
+                  {formatINR(hotel.pricePerNight)}
+                  <span className="ml-1 text-base font-normal text-stone-500 dark:text-stone-400">/ night</span>
+                </p>
+                {hotel.starRating > 0 && (
+                  <p className="mt-2 flex items-center gap-1.5 text-sm text-stone-600 dark:text-stone-300">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    {hotel.starRating}-star property
+                  </p>
+                )}
+
+                <div className="mt-6 space-y-2.5">
+                  {bookAction && BookIcon && (
+                    <a
+                      href={bookAction.href}
+                      {...(bookAction.external && { target: '_blank', rel: 'noopener noreferrer' })}
+                      className={`${primaryCta} h-12 w-full text-base`}
+                    >
+                      {bookAction.label}
+                      <BookIcon className="h-4 w-4" />
+                    </a>
+                  )}
+                  {directions && (
+                    <a href={directions} target="_blank" rel="noopener noreferrer" className={`${secondaryCta} h-12 w-full text-sm`}>
+                      <Navigation className="h-4 w-4" />
+                      Get directions
+                    </a>
+                  )}
+                </div>
+
+                {hotel.amenities?.length > 0 && (
+                  <ul className="mt-6 space-y-2 border-t border-stone-100 pt-5 dark:border-stone-800">
+                    {hotel.amenities.slice(0, 4).map((a) => (
+                      <li key={a} className="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                        {a}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {(hotel.phone || email || hotel.website) && (
+                <div className="rounded-3xl border border-stone-200/80 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+                  <h3 className="mb-2 text-sm font-semibold text-stone-900 dark:text-white">Contact the hotel</h3>
+                  <div className="space-y-1">
+                    {hotel.phone && <ContactRow icon={Phone} label="Phone" value={hotel.phone} href={`tel:${hotel.phone}`} />}
+                    {email && <ContactRow icon={Mail} label="Email" value={email} href={`mailto:${email}`} />}
+                    {hotel.website && (
+                      <ContactRow icon={Globe} label="Website" value="Visit website" href={hotel.website} external />
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              )}
             </div>
-          </div>
+          </aside>
+
+          {/* Contact for small screens (sidebar is desktop-only) */}
+          {(hotel.phone || email || hotel.website) && (
+            <div className="rounded-3xl border border-stone-200/80 bg-white p-6 dark:border-stone-800 dark:bg-stone-900 lg:hidden">
+              <h3 className="mb-3 font-display text-xl font-semibold tracking-tight text-stone-900 dark:text-white">Contact the hotel</h3>
+              <div className="space-y-1">
+                {hotel.phone && <ContactRow icon={Phone} label="Phone" value={hotel.phone} href={`tel:${hotel.phone}`} />}
+                {email && <ContactRow icon={Mail} label="Email" value={email} href={`mailto:${email}`} />}
+                {hotel.website && <ContactRow icon={Globe} label="Website" value="Visit website" href={hotel.website} external />}
+              </div>
+            </div>
+          )}
         </div>
       </section>
+
+      <MobileActionBar>
+        <div className="min-w-0">
+          <p className="text-lg font-bold leading-tight text-stone-900 dark:text-white">
+            {formatINR(hotel.pricePerNight)}
+            <span className="ml-1 text-sm font-normal text-stone-500 dark:text-stone-400">/ night</span>
+          </p>
+          {hotel.starRating > 0 && (
+            <p className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              {hotel.starRating}-star
+            </p>
+          )}
+        </div>
+        {bookAction ? (
+          <a
+            href={bookAction.href}
+            {...(bookAction.external && { target: '_blank', rel: 'noopener noreferrer' })}
+            className={`${primaryCta} h-11 shrink-0 text-sm`}
+          >
+            {bookAction.external ? 'Book now' : 'Call to book'}
+          </a>
+        ) : (
+          directions && (
+            <a href={directions} target="_blank" rel="noopener noreferrer" className={`${primaryCta} h-11 shrink-0 text-sm`}>
+              <Navigation className="h-4 w-4" />
+              Directions
+            </a>
+          )
+        )}
+      </MobileActionBar>
     </div>
   );
 }

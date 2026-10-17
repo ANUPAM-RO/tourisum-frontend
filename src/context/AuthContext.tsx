@@ -62,6 +62,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       await hydrateFavorites();
+    } else {
+      throw new Error(response.message || 'Login failed');
     }
   };
 
@@ -74,6 +76,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       await hydrateFavorites();
+    } else {
+      throw new Error(response.message || 'Registration failed');
     }
   };
 

@@ -1,215 +1,174 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import {
-  MapPin,
-  Search,
-  Star,
-  Heart,
-  ArrowRight,
-  Filter,
-  SlidersHorizontal,
-  Clock,
-  Calendar,
-  Eye,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { usePlaces, useStates, useToggleFavorite } from '@/lib/hooks';
-import { formatRating, cn } from '@/lib/utils';
+import { useDeferredValue, useMemo, useState } from 'react';
+import { ChevronDown, Compass, MapPin, Search, X } from 'lucide-react';
+import { usePlaces, useStates } from '@/lib/hooks';
+import { cn } from '@/lib/utils';
+import type { Place } from '@/types';
+import PageHeader from '@/components/shared/PageHeader';
+import PlaceCard, { PlaceCardSkeleton } from '@/components/shared/PlaceCard';
+import ChipGroup from '@/components/shared/ChipGroup';
+import EmptyState from '@/components/shared/EmptyState';
+import FancySelect from '@/components/shared/FancySelect';
 
 const categories = ['All', 'Hill Station', 'Beach', 'Heritage', 'Wildlife', 'Religious', 'Adventure', 'Honeymoon', 'Family Trip'];
+
+const HEADER_IMAGE = 'https://images.unsplash.com/photo-1477587458883-47145ed94245';
+
+function stateMatches(place: Place, selected: string) {
+  if (selected === 'All') return true;
+  if (typeof place.state !== 'object' || !place.state) return false;
+  return place.state.name === selected || place.state.slug === selected;
+}
 
 export default function PlacesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedState, setSelectedState] = useState('All');
-  const [showFilters, setShowFilters] = useState(false);
+  // Keeps typing responsive while the grid re-filters.
+  const deferredQuery = useDeferredValue(searchQuery);
 
   const { data: placesData, isLoading: placesLoading } = usePlaces({ limit: 50 });
   const { data: statesData } = useStates({ limit: 50 });
-  const { isFavorite, toggle } = useToggleFavorite();
 
-  const places = placesData?.data || [];
-  const states = statesData?.data || [];
+  const places = useMemo(() => placesData?.data ?? [], [placesData]);
+  const states = statesData?.data ?? [];
 
-  const filteredPlaces = places.filter((place: any) => {
-    const matchesSearch = place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      place.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || place.category?.includes(selectedCategory);
-    const matchesState = selectedState === 'All' || place.state?.name === selectedState || place.state?.slug === selectedState;
-    return matchesSearch && matchesCategory && matchesState;
-  });
+  const filteredPlaces = useMemo(() => {
+    const q = deferredQuery.trim().toLowerCase();
+    return places.filter((place) => {
+      const matchesSearch =
+        !q || place.name.toLowerCase().includes(q) || place.description?.toLowerCase().includes(q);
+      const matchesCategory = selectedCategory === 'All' || place.category?.includes(selectedCategory);
+      return matchesSearch && matchesCategory && stateMatches(place, selectedState);
+    });
+  }, [places, deferredQuery, selectedCategory, selectedState]);
+
+  const hasFilters = searchQuery !== '' || selectedCategory !== 'All' || selectedState !== 'All';
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('All');
+    setSelectedState('All');
+  };
 
   return (
-    <div className="pt-20">
-      {/* Header */}
-      <section className="relative h-64 md:h-80 bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="relative z-10 text-center text-white px-4">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold mb-4"
-          >
-            Tourist Destinations
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-lg text-white/90"
-          >
-            Explore India's most beautiful places
-          </motion.p>
-        </div>
-      </section>
-
-      {/* Search & Filters */}
-      <section className="sticky top-16 md:top-20 z-40 bg-white dark:bg-gray-950 border-b dark:border-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search places..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-12 rounded-xl"
-              />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden h-12"
+    <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
+      <PageHeader
+        image={HEADER_IMAGE}
+        eyebrow="Explore India"
+        title={<>Tourist <em className="italic text-orange-300">destinations</em></>}
+        description="Forts, beaches, hill stations and sacred towns — find the places worth the journey."
+        breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Places' }]}
+      >
+        <form
+          role="search"
+          onSubmit={(e) => e.preventDefault()}
+          className="flex max-w-2xl items-center gap-3 rounded-2xl bg-white p-2 pl-5 shadow-2xl shadow-black/30"
+        >
+          <Search className="h-5 w-5 shrink-0 text-orange-500" />
+          <label htmlFor="places-search" className="sr-only">Search places</label>
+          <input
+            id="places-search"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name or what you'd like to see..."
+            className="h-11 w-full bg-transparent text-[15px] text-stone-900 outline-none placeholder:text-stone-400"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+              aria-label="Clear search"
             >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-            <div className={`${showFilters ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-4`}>
-              <Select value={selectedCategory} onValueChange={(v) => v && setSelectedCategory(v)}>
-                <SelectTrigger className="w-full md:w-48 h-12">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedState} onValueChange={(v) => v && setSelectedState(v)}>
-                <SelectTrigger className="w-full md:w-48 h-12">
-                  <SelectValue placeholder="State" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All States</SelectItem>
-                  {states.map((state: any) => (
-                    <SelectItem key={state._id} value={state.name}>{state.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </form>
+      </PageHeader>
+
+      {/* Sticky filter bar */}
+      <div className="sticky top-16 z-30 border-b border-stone-200/80 bg-white/95 dark:border-stone-800 dark:bg-stone-950/95 lg:top-[68px]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <ChipGroup
+            options={categories}
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+            layoutId="places-category"
+            label="Filter by category"
+            className="md:pb-0"
+          />
+          <FancySelect
+            label="State"
+            icon={MapPin}
+            value={selectedState}
+            onChange={setSelectedState}
+            options={[{ value: 'All', label: 'All states' }, ...states.map((s) => ({ value: s.name, label: s.name }))]}
+            align="right"
+            className="shrink-0 md:w-56"
+          />
         </div>
-      </section>
+      </div>
 
-      {/* Places Grid */}
-      <section className="py-12 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="mb-6">
-            <p className="text-gray-600 dark:text-gray-400">
-              Showing {filteredPlaces.length} destination{filteredPlaces.length !== 1 ? 's' : ''}
+      {/* Results */}
+      <section className="py-10 md:py-14">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 flex min-h-8 flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-stone-600 dark:text-stone-400" aria-live="polite">
+              {placesLoading ? (
+                'Loading destinations...'
+              ) : (
+                <>
+                  Showing <span className="font-semibold text-stone-900 dark:text-white">{filteredPlaces.length}</span>{' '}
+                  destination{filteredPlaces.length !== 1 ? 's' : ''}
+                  {selectedState !== 'All' && <> in <span className="font-semibold text-stone-900 dark:text-white">{selectedState}</span></>}
+                </>
+              )}
             </p>
+            {hasFilters && !placesLoading && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/40"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear filters
+              </button>
+            )}
           </div>
 
-          {placesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-96 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPlaces.map((place: any, index: number) => (
-                <motion.div
-                  key={place._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Link href={`/places/${place.slug}`}>
-                    <Card className="card-hover border-0 overflow-hidden group cursor-pointer h-full bg-white dark:bg-gray-800/50 shadow-sm hover:shadow-xl">
-                      <div className="relative h-56 overflow-hidden">
-                        <img
-                          src={place.images?.[0] || 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800'}
-                          alt={place.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        <div className="absolute top-4 left-4 flex gap-2">
-                          {place.category?.slice(0, 2).map((cat: string) => (
-                            <Badge key={cat} className="bg-white/90 text-gray-900">
-                              {cat}
-                            </Badge>
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(place._id); }}
-                          className="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                          aria-label={isFavorite(place._id) ? 'Remove from favorites' : 'Add to favorites'}
-                        >
-                          <Heart className={cn('h-4 w-4', isFavorite(place._id) && 'fill-red-500 text-red-500')} />
-                        </button>
-                        <div className="absolute bottom-4 left-4 text-white">
-                          <h3 className="text-xl font-bold">{place.name}</h3>
-                          <div className="flex items-center gap-2 text-sm text-white/80">
-                            <MapPin className="h-4 w-4" />
-                            {typeof place.city === 'object' ? place.city?.name : ''}{typeof place.state === 'object' && place.state?.name ? `, ${place.state.name}` : ''}
-                          </div>
-                        </div>
-                      </div>
-                      <CardContent className="p-4">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                          {place.description}
-                        </p>
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{formatRating(place.rating)}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-sm text-gray-500">Entry</span>
-                            <p className="font-bold text-blue-600">{place.entryFee || 'Free'}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {filteredPlaces.length === 0 && !placesLoading && (
-            <div className="text-center py-16">
-              <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No places found</h3>
-              <p className="text-gray-500">Try adjusting your search or filters</p>
-            </div>
-          )}
+          <div
+            className={cn(
+              'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200',
+              deferredQuery !== searchQuery && 'opacity-70'
+            )}
+          >
+            {placesLoading ? (
+              Array.from({ length: 6 }, (_, i) => <PlaceCardSkeleton key={i} />)
+            ) : filteredPlaces.length > 0 ? (
+              filteredPlaces.map((place, i) => (
+                <PlaceCard key={place._id} place={place} index={i} showDescription />
+              ))
+            ) : (
+              <EmptyState
+                icon={Compass}
+                title="No places found"
+                description="Try a different search term, category or state."
+                action={
+                  hasFilters ? (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-600 dark:bg-white dark:text-stone-900 dark:hover:bg-orange-500 dark:hover:text-white"
+                    >
+                      Clear filters
+                    </button>
+                  ) : undefined
+                }
+              />
+            )}
+          </div>
         </div>
       </section>
     </div>

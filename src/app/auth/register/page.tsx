@@ -3,20 +3,23 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { MapPin, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ArrowRight, Lock, Mail, Phone, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import AuthShell from '@/components/account/AuthShell';
+import FormField, { SubmitButton } from '@/components/account/FormField';
 
 const registerSchema = z.object({
-  name: z.string().min(1, 'Full name is required'),
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  phone: z.string().optional(),
+  name: z.string().trim().min(1, 'Full name is required').min(2, 'Name must be at least 2 characters'),
+  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^\+?[\d\s-]{7,15}$/.test(v), 'Enter a valid phone number'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -27,7 +30,6 @@ const registerSchema = z.object({
 type RegisterSchemaData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
@@ -50,134 +52,88 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterSchemaData) => {
     setLoading(true);
     try {
-      await register(data.name, data.email, data.password, data.phone);
-      toast.success('Registration successful!');
+      await register(data.name, data.email, data.password, data.phone || undefined);
+      toast.success('Welcome aboard! Your account is ready.');
       router.push('/');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Registration failed');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen pt-20 flex items-center justify-center bg-gradient-to-br from-blue-600 to-emerald-600 px-4 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 mb-4">
-              <MapPin className="h-10 w-10 text-blue-600" />
-              <span className="text-2xl font-bold">India Tourism</span>
-            </Link>
-            <h1 className="text-2xl font-bold mb-2">Create Account</h1>
-            <p className="text-gray-500">Join us to explore Incredible India</p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Full Name</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Enter your name"
-                  {...formRegister('name')}
-                  className={`pl-10 h-12 ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-              </div>
-              {errors.name && (
-                <span className="text-xs text-red-500 mt-1 block">{errors.name.message}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  {...formRegister('email')}
-                  className={`pl-10 h-12 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-              </div>
-              {errors.email && (
-                <span className="text-xs text-red-500 mt-1 block">{errors.email.message}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Phone (Optional)</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  {...formRegister('phone')}
-                  className={`pl-10 h-12 ${errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-              </div>
-              {errors.phone && (
-                <span className="text-xs text-red-500 mt-1 block">{errors.phone.message}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Create a password"
-                  {...formRegister('password')}
-                  className={`pl-10 pr-10 h-12 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              {errors.password && (
-                <span className="text-xs text-red-500 mt-1 block">{errors.password.message}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Confirm Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type="password"
-                  placeholder="Confirm your password"
-                  {...formRegister('confirmPassword')}
-                  className={`pl-10 h-12 ${errors.confirmPassword ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-              </div>
-              {errors.confirmPassword && (
-                <span className="text-xs text-red-500 mt-1 block">{errors.confirmPassword.message}</span>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full h-12" disabled={loading}>
-              {loading ? 'Creating Account...' : 'Sign Up'}
-            </Button>
-          </form>
-
-          <p className="text-center mt-6 text-gray-500">
-            Already have an account?{' '}
-            <Link href="/auth/login" className="text-blue-600 font-medium hover:underline">
-              Sign In
-            </Link>
-          </p>
+    <AuthShell
+      image="https://images.unsplash.com/photo-1564507592333-c60657eea523"
+      imageCaption="Taj Mahal, Agra"
+      tagline={<>Explore <em className="italic text-orange-300">Incredible</em> India</>}
+      taglineSub="Create a free account to save favourite places, plan trips and discover hidden gems across 28 states."
+      title="Create your account"
+      subtitle="It only takes a minute — and it's free."
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link href="/auth/login" className="font-semibold text-orange-600 transition-colors hover:text-rose-600 dark:text-orange-400">
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+        <FormField
+          label="Full name"
+          icon={User}
+          autoComplete="name"
+          placeholder="Your name"
+          error={errors.name?.message}
+          {...formRegister('name')}
+        />
+        <FormField
+          label="Email address"
+          icon={Mail}
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          error={errors.email?.message}
+          {...formRegister('email')}
+        />
+        <FormField
+          label="Phone"
+          labelAside={<span className="text-xs text-stone-400">Optional</span>}
+          icon={Phone}
+          type="tel"
+          autoComplete="tel"
+          placeholder="+91 98765 43210"
+          error={errors.phone?.message}
+          {...formRegister('phone')}
+        />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <FormField
+            label="Password"
+            icon={Lock}
+            passwordToggle
+            autoComplete="new-password"
+            placeholder="Min. 6 characters"
+            error={errors.password?.message}
+            {...formRegister('password')}
+          />
+          <FormField
+            label="Confirm password"
+            icon={Lock}
+            passwordToggle
+            autoComplete="new-password"
+            placeholder="Repeat password"
+            error={errors.confirmPassword?.message}
+            {...formRegister('confirmPassword')}
+          />
         </div>
-      </motion.div>
-    </div>
+        <SubmitButton loading={loading} loadingLabel="Creating account..." className="w-full">
+          Create account
+          <ArrowRight className="h-4 w-4" />
+        </SubmitButton>
+        <p className="text-center text-xs text-stone-400">
+          By signing up you agree to our terms and privacy policy.
+        </p>
+      </form>
+    </AuthShell>
   );
 }

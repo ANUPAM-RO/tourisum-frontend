@@ -2,27 +2,27 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { MapPin, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Lock, Mail } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import AuthShell from '@/components/account/AuthShell';
+import FormField, { SubmitButton } from '@/components/account/FormField';
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
+  email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type LoginSchemaData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const router = useRouter();
 
   const {
     register: formRegister,
@@ -40,87 +40,57 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(data.email, data.password);
-      toast.success('Login successful!');
       const stored = localStorage.getItem('user');
       const userData = stored ? JSON.parse(stored) : null;
-      window.location.href = userData?.role === 'admin' ? '/admin' : '/';
+      toast.success(userData?.name ? `Welcome back, ${userData.name.split(' ')[0]}!` : 'Login successful!');
+      router.push(userData?.role === 'admin' ? '/admin' : '/');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Login failed');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen pt-20 flex items-center justify-center bg-gradient-to-br from-blue-600 to-emerald-600 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 mb-4">
-              <MapPin className="h-10 w-10 text-blue-600" />
-              <span className="text-2xl font-bold">India Tourism</span>
-            </Link>
-            <h1 className="text-2xl font-bold mb-2">Welcome Back</h1>
-            <p className="text-gray-500">Sign in to your account</p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  {...formRegister('email')}
-                  className={`pl-10 h-12 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-              </div>
-              {errors.email && (
-                <span className="text-xs text-red-500 mt-1 block">{errors.email.message}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  {...formRegister('password')}
-                  className={`pl-10 pr-10 h-12 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              {errors.password && (
-                <span className="text-xs text-red-500 mt-1 block">{errors.password.message}</span>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full h-12" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-
-          <p className="text-center mt-6 text-gray-500">
-            Don't have an account?{' '}
-            <Link href="/auth/register" className="text-blue-600 font-medium hover:underline">
-              Sign Up
-            </Link>
-          </p>
-        </div>
-      </motion.div>
-    </div>
+    <AuthShell
+      image="https://images.unsplash.com/photo-1477587458883-47145ed94245"
+      imageCaption="Hawa Mahal, Jaipur"
+      tagline={<>Your next <em className="italic text-orange-300">journey</em> starts here</>}
+      taglineSub="Sign in to pick up where you left off — your saved places and trip ideas are waiting."
+      title="Welcome back"
+      subtitle="Sign in to your account to continue exploring."
+      footer={
+        <>
+          New to India Tourism?{' '}
+          <Link href="/auth/register" className="font-semibold text-orange-600 transition-colors hover:text-rose-600 dark:text-orange-400">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+        <FormField
+          label="Email address"
+          icon={Mail}
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          error={errors.email?.message}
+          {...formRegister('email')}
+        />
+        <FormField
+          label="Password"
+          icon={Lock}
+          passwordToggle
+          autoComplete="current-password"
+          placeholder="Enter your password"
+          error={errors.password?.message}
+          {...formRegister('password')}
+        />
+        <SubmitButton loading={loading} loadingLabel="Signing in..." className="w-full">
+          Sign in
+          <ArrowRight className="h-4 w-4" />
+        </SubmitButton>
+      </form>
+    </AuthShell>
   );
 }
