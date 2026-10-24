@@ -17,6 +17,9 @@ import type { Tour } from '@/types';
 
 interface DepartureRow { _id?: string; startDate: string; seatsTotal: number; seatsBooked: number }
 interface DayRow { title: string; description: string; meals: string; stay: string }
+interface HotelRow { name: string; image: string; location: string; googleMapLink: string; starRating: number; pricePerNight: number }
+
+const emptyHotel: HotelRow = { name: '', image: '', location: '', googleMapLink: '', starRating: 3, pricePerNight: 0 };
 
 interface TourForm {
   title: string;
@@ -28,6 +31,7 @@ interface TourForm {
   durationDays: number;
   durationNights: number;
   price: number;
+  priceQuad: string;
   originalPrice: string;
   difficulty: Tour['difficulty'];
   groupSize: number;
@@ -37,6 +41,7 @@ interface TourForm {
   places: string[];
   departures: DepartureRow[];
   itinerary: DayRow[];
+  hotels: HotelRow[];
   highlights: string;
   inclusions: string;
   exclusions: string;
@@ -47,8 +52,8 @@ interface TourForm {
 
 const emptyForm: TourForm = {
   title: '', slug: '', tagline: '', description: '', startCity: '', endCity: '',
-  durationDays: 5, durationNights: 4, price: 0, originalPrice: '', difficulty: 'Easy', groupSize: 15, tags: '',
-  coverImage: '', gallery: '', places: [], departures: [], itinerary: [{ title: '', description: '', meals: '', stay: '' }],
+  durationDays: 5, durationNights: 4, price: 0, priceQuad: '', originalPrice: '', difficulty: 'Easy', groupSize: 15, tags: '',
+  coverImage: '', gallery: '', places: [], departures: [], itinerary: [{ title: '', description: '', meals: '', stay: '' }], hotels: [],
   highlights: '', inclusions: '', exclusions: '', thingsToCarry: '', featured: false, published: true,
 };
 
@@ -59,11 +64,12 @@ const slugify = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a
 function toForm(t: Tour): TourForm {
   return {
     title: t.title, slug: t.slug, tagline: t.tagline, description: t.description, startCity: t.startCity, endCity: t.endCity,
-    durationDays: t.durationDays, durationNights: t.durationNights, price: t.price, originalPrice: t.originalPrice ? String(t.originalPrice) : '',
+    durationDays: t.durationDays, durationNights: t.durationNights, price: t.price, priceQuad: t.priceQuad ? String(t.priceQuad) : '', originalPrice: t.originalPrice ? String(t.originalPrice) : '',
     difficulty: t.difficulty, groupSize: t.groupSize, tags: t.tags.join(', '), coverImage: t.coverImage, gallery: t.gallery.join('\n'),
     places: t.places.map((p) => (typeof p === 'string' ? p : p._id)),
     departures: t.departures.map((d) => ({ _id: d._id, startDate: d.startDate.slice(0, 10), seatsTotal: d.seatsTotal, seatsBooked: d.seatsBooked })),
     itinerary: t.itinerary.length ? t.itinerary.map((d) => ({ title: d.title, description: d.description, meals: d.meals.join(', '), stay: d.stay })) : emptyForm.itinerary,
+    hotels: (t.hotels ?? []).map((h) => ({ ...emptyHotel, ...h })),
     highlights: t.highlights.join('\n'), inclusions: t.inclusions.join('\n'), exclusions: t.exclusions.join('\n'), thingsToCarry: t.thingsToCarry.join('\n'),
     featured: t.featured, published: t.published,
   };
@@ -73,10 +79,14 @@ function toInput(f: TourForm): TourInput {
   return {
     title: f.title.trim(), slug: f.slug || slugify(f.title), tagline: f.tagline.trim(), description: f.description.trim(),
     startCity: f.startCity.trim(), endCity: f.endCity.trim(), durationDays: Number(f.durationDays), durationNights: Number(f.durationNights),
-    price: Number(f.price), originalPrice: f.originalPrice ? Number(f.originalPrice) : undefined, difficulty: f.difficulty,
+    price: Number(f.price), priceQuad: f.priceQuad ? Number(f.priceQuad) : null, originalPrice: f.originalPrice ? Number(f.originalPrice) : undefined, difficulty: f.difficulty,
     groupSize: Number(f.groupSize), tags: list(f.tags), coverImage: f.coverImage.trim(), gallery: lines(f.gallery), places: f.places,
     departures: f.departures.filter((d) => d.startDate).map((d) => ({ _id: d._id, startDate: d.startDate, seatsTotal: Number(d.seatsTotal) })),
     itinerary: f.itinerary.filter((d) => d.title.trim()).map((d, i) => ({ day: i + 1, title: d.title.trim(), description: d.description.trim(), meals: list(d.meals), stay: d.stay.trim() })),
+    hotels: f.hotels.filter((h) => h.name.trim()).map((h) => ({
+      name: h.name.trim(), image: h.image.trim(), location: h.location.trim(), googleMapLink: h.googleMapLink.trim(),
+      starRating: Number(h.starRating), pricePerNight: Number(h.pricePerNight),
+    })),
     highlights: lines(f.highlights), inclusions: lines(f.inclusions), exclusions: lines(f.exclusions), thingsToCarry: lines(f.thingsToCarry),
     featured: f.featured, published: f.published,
   };
@@ -169,6 +179,8 @@ export default function AdminToursPage() {
     set('departures', form.departures.map((d, j) => (j === i ? { ...d, ...patch } : d)));
   const updateDay = (i: number, patch: Partial<DayRow>) =>
     set('itinerary', form.itinerary.map((d, j) => (j === i ? { ...d, ...patch } : d)));
+  const updateHotel = (i: number, patch: Partial<HotelRow>) =>
+    set('hotels', form.hotels.map((h, j) => (j === i ? { ...h, ...patch } : h)));
 
   return (
     <div>
@@ -188,10 +200,11 @@ export default function AdminToursPage() {
             </DialogHeader>
             <form onSubmit={handleSubmit}>
               <Tabs defaultValue="basic" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="basic">Basic</TabsTrigger>
                   <TabsTrigger value="dates">Price & Dates</TabsTrigger>
                   <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+                  <TabsTrigger value="hotels">Hotels</TabsTrigger>
                   <TabsTrigger value="details">Details</TabsTrigger>
                   <TabsTrigger value="media">Media & Places</TabsTrigger>
                 </TabsList>
@@ -232,9 +245,12 @@ export default function AdminToursPage() {
                 </TabsContent>
 
                 <TabsContent value="dates" className="space-y-4 mt-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <Field label="Price per person (₹) *"><Input type="number" min={0} value={form.price} onChange={(e) => set('price', Number(e.target.value))} required /></Field>
-                    <Field label="Original price (₹)" hint="Optional — shows a strike-through discount"><Input type="number" min={0} value={form.originalPrice} onChange={(e) => set('originalPrice', e.target.value)} /></Field>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Price per person — 2 in a room (₹) *" hint="Twin sharing. Used as the main tour price."><Input type="number" min={0} value={form.price} onChange={(e) => set('price', Number(e.target.value))} required /></Field>
+                    <Field label="Price per person — 3–4 in a room (₹)" hint="Optional — leave empty if not offered"><Input type="number" min={0} value={form.priceQuad} onChange={(e) => set('priceQuad', e.target.value)} placeholder="Not offered" /></Field>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Original price — 2 in a room (₹)" hint="Optional — shows a strike-through discount"><Input type="number" min={0} value={form.originalPrice} onChange={(e) => set('originalPrice', e.target.value)} /></Field>
                     <Field label="Default seats per departure"><Input type="number" min={1} value={form.groupSize} onChange={(e) => set('groupSize', Number(e.target.value))} /></Field>
                   </div>
                   <div>
@@ -282,6 +298,44 @@ export default function AdminToursPage() {
                   ))}
                   <Button type="button" variant="outline" onClick={() => set('itinerary', [...form.itinerary, { title: '', description: '', meals: '', stay: '' }])}>
                     <Plus className="h-4 w-4 mr-1" /> Add day
+                  </Button>
+                </TabsContent>
+
+                <TabsContent value="hotels" className="space-y-4 mt-4">
+                  <p className="text-sm text-gray-500">Hotels guests stay in on this tour — shown as &ldquo;Hotels we provide&rdquo; on the tour page.</p>
+                  {form.hotels.length === 0 && <p className="text-sm text-gray-500">No hotels yet — the section is hidden.</p>}
+                  {form.hotels.map((h, i) => (
+                    <div key={i} className="rounded-lg border p-4 space-y-3 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold">Hotel {i + 1}</p>
+                        <Button type="button" variant="ghost" size="icon" className="text-red-600" onClick={() => set('hotels', form.hotels.filter((_, j) => j !== i))} aria-label="Remove hotel">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="Hotel name *"><Input value={h.name} onChange={(e) => updateHotel(i, { name: e.target.value })} placeholder="e.g., Hotel Pearl Palace" /></Field>
+                        <Field label="Location"><Input value={h.location} onChange={(e) => updateHotel(i, { location: e.target.value })} placeholder="e.g., Jaipur, Rajasthan" /></Field>
+                      </div>
+                      <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                        <Field label="Image URL"><Input value={h.image} onChange={(e) => updateHotel(i, { image: e.target.value })} placeholder="https://..." /></Field>
+                        {h.image && <img src={h.image} alt="" className="mt-6 h-16 w-24 rounded-lg object-cover" />}
+                      </div>
+                      <Field label="Google Maps link" hint="Leave empty to search Google Maps by name and location">
+                        <Input value={h.googleMapLink} onChange={(e) => updateHotel(i, { googleMapLink: e.target.value })} placeholder="https://maps.app.goo.gl/..." />
+                      </Field>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="Star rating">
+                          <select value={h.starRating} onChange={(e) => updateHotel(i, { starRating: Number(e.target.value) })} className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm">
+                            <option value={0}>Not rated</option>
+                            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} star</option>)}
+                          </select>
+                        </Field>
+                        <Field label="Price per night (₹)"><Input type="number" min={0} value={h.pricePerNight} onChange={(e) => updateHotel(i, { pricePerNight: Number(e.target.value) })} /></Field>
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" onClick={() => set('hotels', [...form.hotels, emptyHotel])}>
+                    <Plus className="h-4 w-4 mr-1" /> Add hotel
                   </Button>
                 </TabsContent>
 
@@ -369,7 +423,7 @@ export default function AdminToursPage() {
                           </div>
                         </td>
                         <td className="py-4 px-6 text-sm">{durationLabel(t)}</td>
-                        <td className="py-4 px-6 font-medium">{formatINR(t.price)}</td>
+                        <td className="py-4 px-6"><p className="font-medium">{formatINR(t.price)}</p>{t.priceQuad ? <p className="text-xs text-gray-500">3–4/room: {formatINR(t.priceQuad)}</p> : null}</td>
                         <td className="py-4 px-6 text-sm">
                           {next ? (
                             <><p>{formatTourDate(next.startDate)}</p><p className="text-xs text-gray-500">{next.seatsBooked}/{next.seatsTotal} booked</p></>

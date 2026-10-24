@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import { ApiResponse, Booking, BookingStatus, Tour } from '@/types';
+import { ApiResponse, Booking, BookingStatus, RoomPlan, Tour } from '@/types';
 
 export interface BookingRequest {
   tourId: string;
@@ -10,6 +10,7 @@ export interface BookingRequest {
   adults: number;
   children: number;
   message?: string;
+  rooms?: RoomPlan;
 }
 
 /** Shape the admin form sends; departures/places are ids rather than populated objects. */

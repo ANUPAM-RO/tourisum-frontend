@@ -2,10 +2,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CalendarCheck, Compass, Mail, MapPin, Phone } from 'lucide-react';
+import { Compass, Mail, MapPin, MessageSquareText, Phone } from 'lucide-react';
 import { useAgency, useSiteSettings } from '@/lib/hooks';
 import BrandName from '@/components/shared/BrandName';
 import { SHOW_STAYS } from '@/lib/features';
+import { useBookTour } from '@/components/booking/BookTourProvider';
 import type { SiteSettings } from '@/types';
 
 const FacebookIcon = () => (
@@ -53,6 +54,7 @@ const linkClass = 'text-sm text-stone-400 transition-colors hover:text-white';
 const Footer = () => {
   const { settings } = useSiteSettings();
   const agency = useAgency();
+  const { openBooking } = useBookTour();
   const socialLinks = socials.filter((s) => settings.social[s.key]);
 
   return (
@@ -74,13 +76,14 @@ const Footer = () => {
             <p className="max-w-xs text-sm leading-relaxed text-stone-400">
               {settings.description}
             </p>
-            <Link
-              href="/#book-a-tour"
+            <button
+              type="button"
+              onClick={() => openBooking()}
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-[filter] hover:brightness-110"
             >
-              <CalendarCheck className="h-4 w-4" />
-              Book a tour with {agency.name}
-            </Link>
+              <MessageSquareText className="h-4 w-4" />
+              Raise a query
+            </button>
             {socialLinks.length > 0 && (
             <div className="mt-6 flex gap-2">
               {socialLinks.map(({ key, label, icon: Icon }) => (

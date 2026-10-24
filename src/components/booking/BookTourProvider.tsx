@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarCheck } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react';
 import BookTourDialog from './BookTourDialog';
 
 interface BookTourContextValue {
@@ -52,10 +52,10 @@ export default function BookTourProvider({ children }: { children: React.ReactNo
             className={`fixed right-4 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 py-3 pl-4 pr-5 text-sm font-semibold text-white shadow-xl shadow-orange-500/30 transition-[filter,transform] hover:brightness-110 active:scale-95 sm:right-6 ${
               isDetailPage ? 'bottom-24 lg:bottom-6' : 'bottom-5 sm:bottom-6'
             }`}
-            aria-label="Book a tour"
+            aria-label="Raise a query"
           >
-            <CalendarCheck className="h-5 w-5" />
-            <span>Book a tour</span>
+            <MessageSquareText className="h-5 w-5" />
+            <span>Raise a query</span>
           </motion.button>
         )}
       </AnimatePresence>

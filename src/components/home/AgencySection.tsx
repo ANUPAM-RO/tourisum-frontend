@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { BadgeCheck, CalendarCheck, CheckCircle2, Mail, MessageCircle, Phone } from 'lucide-react';
+import { BadgeCheck, CheckCircle2, Mail, MessageCircle, MessageSquareText, Phone } from 'lucide-react';
 import { useBookTour } from '@/components/booking/BookTourProvider';
 import SafeImage from '@/components/shared/SafeImage';
 import { useAgency } from '@/lib/hooks';
@@ -64,8 +64,8 @@ export default function AgencySection() {
                 onClick={() => openBooking()}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 px-7 font-semibold text-white shadow-lg shadow-orange-500/30 transition-[filter,transform] hover:brightness-110 active:scale-[0.98]"
               >
-                <CalendarCheck className="h-5 w-5" />
-                Book a tour
+                <MessageSquareText className="h-5 w-5" />
+                Raise a query
               </button>
               <a
                 href={agency.whatsAppLink(`Hi ${agency.name}, I'd like to plan a tour.`)}

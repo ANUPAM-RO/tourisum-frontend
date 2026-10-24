@@ -7,7 +7,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { formatINR, formatTourDate } from '@/lib/tours';
+import { formatINR, formatTourDate, roomsSummary } from '@/lib/tours';
 import { bookingService } from '@/services/tourService';
 import type { Booking, BookingStatus } from '@/types';
 
@@ -149,6 +149,7 @@ export default function AdminBookingsPage() {
                       </td>
                       <td className="py-4 px-6 text-sm">
                         {b.adults} adult{b.adults > 1 ? 's' : ''}{b.children ? <><br />{b.children} child{b.children > 1 ? 'ren' : ''}</> : null}
+                        {b.rooms && <p className="mt-1 text-xs text-gray-500">Rooms: {roomsSummary(b.rooms)} people</p>}
                       </td>
                       <td className="py-4 px-6 font-semibold">{formatINR(b.totalPrice)}</td>
                       <td className="py-4 px-6">

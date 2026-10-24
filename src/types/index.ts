@@ -326,6 +326,16 @@ export interface TourPlace {
   state?: { name: string; slug: string };
 }
 
+/** A hotel the tour books for its guests, entered on the admin tour form. */
+export interface TourHotel {
+  name: string;
+  image: string;
+  location: string;
+  googleMapLink: string;
+  starRating: number;
+  pricePerNight: number;
+}
+
 export interface Tour {
   _id: string;
   title: string;
@@ -339,7 +349,10 @@ export interface Tour {
   endCity: string;
   durationDays: number;
   durationNights: number;
+  /** Per person, 2 in a room (twin sharing). */
   price: number;
+  /** Per person, 3–4 in a room. Not offered when empty. */
+  priceQuad?: number | null;
   originalPrice?: number;
   difficulty: 'Easy' | 'Moderate' | 'Challenging';
   groupSize: number;
@@ -349,6 +362,8 @@ export interface Tour {
   nextDeparture?: TourDeparture | null;
   highlights: string[];
   itinerary: TourDay[];
+  /** Missing on the tour list endpoint. */
+  hotels?: TourHotel[];
   inclusions: string[];
   exclusions: string[];
   thingsToCarry: string[];
@@ -359,6 +374,12 @@ export interface Tour {
 }
 
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+/** Number of rooms of each size: double = 2 per room, triple = 3, quad = 4. */
+export interface RoomPlan {
+  double: number;
+  triple: number;
+  quad: number;
+}
 
 export interface Booking {
   _id: string;
@@ -373,7 +394,12 @@ export interface Booking {
   adults: number;
   children: number;
   message: string;
+  /** Missing on bookings made before room planning. */
+  rooms?: RoomPlan;
+  /** Per person, 2 in a room, at booking time. */
   pricePerPerson: number;
+  /** Per person, 3–4 in a room, at booking time. */
+  priceQuad?: number | null;
   totalPrice: number;
   status: BookingStatus;
   adminNote: string;

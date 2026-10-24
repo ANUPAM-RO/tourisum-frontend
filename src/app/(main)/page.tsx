@@ -6,7 +6,6 @@ import IndiaMapSection from '@/components/home/IndiaMapSection';
 import ToursSection from '@/components/home/ToursSection';
 import FeaturesSection from '@/components/home/FeaturesSection';
 import GuidesSection from '@/components/home/GuidesSection';
-import BudgetSection from '@/components/home/BudgetSection';
 import AgencySection from '@/components/home/AgencySection';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterCta from '@/components/home/NewsletterCta';
@@ -23,7 +22,6 @@ export default function HomePage() {
       <IndiaMapSection />
       <StatesSection />
       <FeaturesSection />
-      <BudgetSection />
       <AgencySection />
       <GuidesSection />
       <TestimonialsSection />

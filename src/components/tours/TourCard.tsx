@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, CalendarDays, Clock, MapPin, Users } from 'lucide-react';
 import SafeImage from '@/components/shared/SafeImage';
 import { cn } from '@/lib/utils';
-import { discountPercent, durationLabel, formatINR, formatTourDate, seatsLabel, seatsLeftOf } from '@/lib/tours';
+import { discountPercent, durationLabel, formatINR, fromPrice, formatTourDate, seatsLabel, seatsLeftOf } from '@/lib/tours';
 import type { Tour } from '@/types';
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
@@ -81,8 +81,8 @@ export default function TourCard({ tour, index = 0 }: { tour: Tour; index?: numb
           <div>
             <p className="text-xs text-stone-500 dark:text-stone-400">From, per person</p>
             <p className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-stone-900 dark:text-white">{formatINR(tour.price)}</span>
-              {discount > 0 && <span className="text-sm text-stone-400 line-through">{formatINR(tour.originalPrice!)}</span>}
+              <span className="text-2xl font-bold text-stone-900 dark:text-white">{formatINR(fromPrice(tour))}</span>
+              {discount > 0 && fromPrice(tour) === tour.price && <span className="text-sm text-stone-400 line-through">{formatINR(tour.originalPrice!)}</span>}
             </p>
           </div>
           <Link

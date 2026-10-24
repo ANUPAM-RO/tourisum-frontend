@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarCheck, CheckCircle2, Eye, Mail, Target } from 'lucide-react';
+import { CheckCircle2, Eye, Mail, MessageSquareText, Target } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { useBookTour } from '@/components/booking/BookTourProvider';
 import { useAgency, useSiteSettings } from '@/lib/hooks';
@@ -80,8 +80,8 @@ export default function AboutContent() {
                 onClick={() => openBooking()}
                 className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 text-sm font-semibold text-white transition-[filter] hover:brightness-110"
               >
-                <CalendarCheck className="h-4 w-4" />
-                Book a tour
+                <MessageSquareText className="h-4 w-4" />
+                Raise a query
               </button>
               <Link
                 href="/contact"

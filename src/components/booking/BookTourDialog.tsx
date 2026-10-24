@@ -56,22 +56,22 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
     const next: Record<string, string> = {};
     if (form.name.trim().length < 2) next.name = 'Enter your name';
     if (!/^[+\d][\d\s-]{8,14}$/.test(form.phone.trim())) next.phone = 'Enter a valid number';
-    if (!form.destination.trim()) next.destination = 'Where would you like to go?';
+    if (!form.destination.trim() && form.message.trim().length < 5) next.message = 'Tell us your query or where you’d like to go';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
   const enquiryText = () =>
     [
-      `Hi ${agency.name}, I'd like to book a tour.`,
+      `Hi ${agency.name}, I have a query.`,
       '',
       `Name: ${form.name.trim()}`,
       `Phone: ${form.phone.trim()}`,
-      `Destination: ${form.destination.trim()}`,
+      form.destination.trim() && `Destination: ${form.destination.trim()}`,
       form.date && `Travel date: ${form.date}`,
       `Travellers: ${form.travellers}`,
       `Budget: ${form.budget}`,
-      form.message.trim() && `Notes: ${form.message.trim()}`,
+      form.message.trim() && `Query: ${form.message.trim()}`,
     ]
       .filter(Boolean)
       .join('\n');
@@ -81,9 +81,9 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
     const url =
       channel === 'whatsapp'
         ? agency.whatsAppLink(enquiryText())
-        : agency.mailLink(`Tour enquiry: ${form.destination.trim()}`, enquiryText());
+        : agency.mailLink(form.destination.trim() ? `Query: ${form.destination.trim()}` : `Query from ${form.name.trim()}`, enquiryText());
     window.open(url, '_blank', 'noopener,noreferrer');
-    toast.success(`Enquiry ready — ${agency.name} will get back to you shortly.`);
+    toast.success(`Query ready — ${agency.name} will get back to you shortly.`);
     onOpenChange(false);
   };
 
@@ -102,12 +102,12 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
             <div className="pointer-events-none absolute -bottom-24 -right-16 h-56 w-56 rounded-full bg-rose-500/20 blur-3xl" />
 
             <div className="relative">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-300">Book a tour</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-300">Raise your query</p>
               <DialogTitle className="mt-2 pr-10 font-display text-2xl font-semibold leading-tight tracking-tight text-white md:text-[28px] md:pr-0">
-                Plan your trip with {agency.name}
+                How can {agency.name} help?
               </DialogTitle>
               <DialogDescription className="mt-2 hidden text-sm leading-relaxed text-white/60 md:block">
-                Share a few details and get a custom itinerary with the best price — usually within a few hours.
+                Ask about a tour, a custom trip, prices or anything else — we usually reply within a few hours.
               </DialogDescription>
 
               <div className="mt-4 flex items-center gap-3 md:mt-7">
@@ -160,7 +160,7 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
             }}
             className="scrollbar-none overflow-y-auto px-5 py-5 md:px-7 md:py-7"
           >
-            <h3 className="mb-4 hidden text-base font-semibold text-stone-900 md:block dark:text-white">Your trip details</h3>
+            <h3 className="mb-4 hidden text-base font-semibold text-stone-900 md:block dark:text-white">Your query</h3>
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-3.5">
               <div>
@@ -174,7 +174,9 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
                 {errors.phone && <p className="mt-1 text-xs text-rose-600">{errors.phone}</p>}
               </div>
               <div className="col-span-2">
-                <label htmlFor="bt-dest" className={labelClass}>Destination</label>
+                <label htmlFor="bt-dest" className={labelClass}>
+                  Destination or tour <span className="normal-case tracking-normal text-stone-400">(optional)</span>
+                </label>
                 <input id="bt-dest" value={form.destination} onChange={update('destination')} placeholder="e.g. Darjeeling, Goa, Rajasthan" className={cn(inputClass, errors.destination && 'border-rose-400')} />
                 {errors.destination && <p className="mt-1 text-xs text-rose-600">{errors.destination}</p>}
               </div>
@@ -231,10 +233,9 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
                 </div>
               </div>
               <div className="col-span-2">
-                <label htmlFor="bt-msg" className={labelClass}>
-                  Notes <span className="normal-case tracking-normal text-stone-400">(optional)</span>
-                </label>
-                <textarea id="bt-msg" rows={2} value={form.message} onChange={update('message')} placeholder="Hotels, pickup, special requests…" className={cn(inputClass, 'h-auto resize-none py-2')} />
+                <label htmlFor="bt-msg" className={labelClass}>Your query</label>
+                <textarea id="bt-msg" rows={3} value={form.message} onChange={update('message')} placeholder="Ask anything — dates, prices, hotels, a custom plan…" className={cn(inputClass, 'h-auto resize-none py-2', errors.message && 'border-rose-400')} />
+                {errors.message && <p className="mt-1 text-xs text-rose-600">{errors.message}</p>}
               </div>
             </div>
 
@@ -256,7 +257,7 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
               </button>
             </div>
             <p className="mt-3 text-center text-xs text-stone-400">
-              Your details are shared only with {agency.name} to plan your trip.
+              Your details are shared only with {agency.name} to answer your query.
             </p>
           </form>
         </div>

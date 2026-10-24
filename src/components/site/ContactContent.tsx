@@ -1,22 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { CheckCircle2, Clock, Mail, MapPin, MessageCircle, MessageSquareText, Phone } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { useAgency, useSiteSettings } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
-
-const inputClass =
-  'w-full rounded-[10px] border border-stone-200 bg-stone-50/60 px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 outline-none transition-[border-color,box-shadow,background-color] focus:border-orange-400 focus:bg-white focus:ring-[3px] focus:ring-orange-500/15 dark:border-stone-700 dark:bg-stone-800/60 dark:text-white';
-
-const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400';
+import { useBookTour } from '@/components/booking/BookTourProvider';
 
 export default function ContactContent() {
   const { settings } = useSiteSettings();
   const agency = useAgency();
   const { contact } = settings;
-  const [form, setForm] = useState({ name: '', reply: '', message: '' });
-  const [error, setError] = useState('');
+  const { openBooking } = useBookTour();
 
   const mapLink = contact.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`;
 
@@ -27,26 +21,6 @@ export default function ContactContent() {
     { icon: MapPin, label: 'Address', value: contact.address, href: mapLink, external: true },
     { icon: Clock, label: 'Working hours', value: contact.workingHours },
   ].filter((c) => c.value);
-
-  const messageText = () =>
-    [
-      `Hi ${agency.name},`,
-      '',
-      form.message.trim(),
-      '',
-      `— ${form.name.trim()}`,
-      ...(form.reply.trim() ? [`Reply to: ${form.reply.trim()}`] : []),
-    ].join('\n');
-
-  const send = (via: 'whatsapp' | 'email') => {
-    if (form.name.trim().length < 2 || form.message.trim().length < 5) {
-      setError('Please enter your name and a message.');
-      return;
-    }
-    setError('');
-    const url = via === 'whatsapp' ? agency.whatsAppLink(messageText()) : agency.mailLink(`Enquiry from ${form.name.trim()}`, messageText());
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950">
@@ -90,37 +64,47 @@ export default function ContactContent() {
           })}
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); send('whatsapp'); }} className="rounded-2xl bg-white p-6 shadow-sm sm:p-8 dark:bg-stone-900">
-          <h2 className="font-display text-2xl font-semibold text-stone-900 dark:text-white">Send us a message</h2>
-          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">Your message opens in WhatsApp or your email app, ready to send.</p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="ct-name" className={labelClass}>Your name</label>
-              <input id="ct-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" className={inputClass} />
+        {/* The site's one query form lives in the popup; this card opens it. */}
+        <div className="relative overflow-hidden rounded-2xl bg-stone-950 p-6 text-white shadow-sm sm:p-8">
+          <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-orange-500/30 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -right-12 h-52 w-52 rounded-full bg-rose-500/20 blur-3xl" />
+          <div className="relative">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-300">Raise your query</p>
+            <h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Have a question or planning a trip?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/65">
+              Send us your query about a tour, a custom trip, prices or anything else. It opens in WhatsApp or your email app, ready to send.
+            </p>
+            {agency.highlights.length > 0 && (
+              <ul className="mt-5 space-y-2 text-sm text-white/75">
+                {agency.highlights.map((h) => (
+                  <li key={h} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                    {h}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => openBooking()}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 font-semibold text-white shadow-lg shadow-orange-500/30 transition-[filter,transform] hover:brightness-110 active:scale-[0.98]"
+              >
+                <MessageSquareText className="h-4 w-4" />
+                Raise a query
+              </button>
+              <a
+                href={agency.whatsAppLink(`Hi ${agency.name}, I have a question.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-white/10 font-semibold text-white transition-colors hover:bg-white/20"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat on WhatsApp
+              </a>
             </div>
-            <div>
-              <label htmlFor="ct-reply" className={labelClass}>Phone or email (optional)</label>
-              <input id="ct-reply" value={form.reply} onChange={(e) => setForm({ ...form, reply: e.target.value })} className={inputClass} />
-            </div>
           </div>
-          <div className="mt-4">
-            <label htmlFor="ct-message" className={labelClass}>Message</label>
-            <textarea id="ct-message" rows={6} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className={inputClass} />
-          </div>
-          {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <button type="submit" className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 font-semibold text-white transition-colors hover:bg-emerald-700">
-              <MessageCircle className="h-4 w-4" />
-              Send on WhatsApp
-            </button>
-            <button type="button" onClick={() => send('email')} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-stone-200 font-semibold text-stone-700 transition-colors hover:border-orange-300 hover:text-orange-600 dark:border-stone-700 dark:text-stone-200">
-              <Mail className="h-4 w-4" />
-              Send by email
-            </button>
-          </div>
-        </form>
+        </div>
       </section>
     </div>
   );

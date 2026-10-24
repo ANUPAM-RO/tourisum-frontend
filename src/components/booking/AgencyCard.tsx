@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgeCheck, CalendarCheck, Mail, MessageCircle, Phone } from 'lucide-react';
+import { BadgeCheck, Mail, MessageCircle, MessageSquareText, Phone } from 'lucide-react';
 import { useAgency } from '@/lib/hooks';
 import { useBookTour } from './BookTourProvider';
 
@@ -42,8 +42,8 @@ export default function AgencyCard({ destination, className = '' }: AgencyCardPr
         onClick={() => openBooking(destination)}
         className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 font-semibold text-white shadow-md shadow-orange-500/25 transition-[filter,transform] hover:brightness-110 active:scale-[0.98]"
       >
-        <CalendarCheck className="h-4 w-4" />
-        Book this tour
+        <MessageSquareText className="h-4 w-4" />
+        Raise a query
       </button>
       <div className="mt-2 grid grid-cols-3 gap-2">
         <a href={agency.telLink} className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white text-sm font-medium text-stone-700 transition-colors hover:border-orange-300 hover:text-orange-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200" aria-label={`Call ${agency.name}`}>

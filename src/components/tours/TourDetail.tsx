@@ -1,14 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { BedDouble, CheckCircle2, Clock, Gauge, MapPin, Mountain, Users, Utensils, XCircle, Backpack, Sparkles } from 'lucide-react';
+import { CheckCircle2, Clock, Gauge, MapPin, Mountain, Users, XCircle, Backpack, Sparkles } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import SafeImage from '@/components/shared/SafeImage';
 import EmptyState from '@/components/shared/EmptyState';
 import { useTour } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
-import { DIFFICULTY_STYLES, durationLabel, formatINR } from '@/lib/tours';
+import { DIFFICULTY_STYLES, durationLabel, formatINR, fromPrice } from '@/lib/tours';
 import BookingPanel from './BookingPanel';
+import TourHotels from './TourHotels';
+import TourItinerary from './TourItinerary';
 
 function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   return (
@@ -82,34 +84,7 @@ export default function TourDetail({ slug }: { slug: string }) {
 
           {tour.itinerary.length > 0 && (
             <Section id="itinerary" title="Day-by-day itinerary">
-              <ol className="relative space-y-6 border-l-2 border-dashed border-orange-200 pl-8 dark:border-orange-900/60">
-                {tour.itinerary.map((d) => (
-                  <li key={d.day} className="relative">
-                    <span className="absolute -left-[3.05rem] flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-rose-500 text-sm font-bold text-white shadow-md shadow-orange-500/25">
-                      {d.day}
-                    </span>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-600 dark:text-orange-400">Day {d.day}</p>
-                    <h3 className="mt-1 text-lg font-semibold text-stone-900 dark:text-white">{d.title}</h3>
-                    {d.description && <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{d.description}</p>}
-                    {(d.meals.length > 0 || d.stay) && (
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        {d.meals.length > 0 && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                            <Utensils className="h-3.5 w-3.5 text-orange-500" />
-                            {d.meals.join(' · ')}
-                          </span>
-                        )}
-                        {d.stay && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-3 py-1 text-stone-700 dark:bg-stone-800 dark:text-stone-300">
-                            <BedDouble className="h-3.5 w-3.5 text-orange-500" />
-                            {d.stay}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ol>
+              <TourItinerary days={tour.itinerary} />
             </Section>
           )}
 
@@ -126,6 +101,12 @@ export default function TourDetail({ slug }: { slug: string }) {
                   </Link>
                 ))}
               </div>
+            </Section>
+          )}
+
+          {tour.hotels && tour.hotels.length > 0 && (
+            <Section id="hotels" title="Hotels we provide">
+              <TourHotels hotels={tour.hotels} />
             </Section>
           )}
 
@@ -190,7 +171,7 @@ export default function TourDetail({ slug }: { slug: string }) {
       <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden dark:border-stone-800 dark:bg-stone-950/95">
         <div>
           <p className="text-xs text-stone-500">From, per person</p>
-          <p className="text-lg font-bold text-stone-900 dark:text-white">{formatINR(tour.price)}</p>
+          <p className="text-lg font-bold text-stone-900 dark:text-white">{formatINR(fromPrice(tour))}</p>
         </div>
         <a href="#book" className="rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 px-6 py-3 font-semibold text-white shadow-lg shadow-orange-500/25">
           Book now
