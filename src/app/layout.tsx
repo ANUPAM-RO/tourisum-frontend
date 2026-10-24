@@ -3,6 +3,8 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import { Toaster } from "@/components/ui/sonner";
+import { DEFAULT_SETTINGS, withDefaults } from "@/lib/siteSettings";
+import type { SiteSettings } from "@/types";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,27 +18,30 @@ const playfair = Playfair_Display({
   style: ["normal", "italic"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "India Tourism - Explore Incredible India",
-    template: "%s | India Tourism",
-  },
-  description: "Discover the beauty of India. Explore tourist destinations, plan your trips, and create unforgettable memories across India.",
-  keywords: ["India tourism", "travel", "tourist places", "incredible india", "destinations"],
-  authors: [{ name: "India Tourism" }],
-  openGraph: {
-    title: "India Tourism - Explore Incredible India",
-    description: "Discover the beauty of India. Explore tourist destinations, plan your trips.",
-    type: "website",
-    locale: "en_IN",
-    siteName: "India Tourism",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "India Tourism - Explore Incredible India",
-    description: "Discover the beauty of India.",
-  },
-};
+async function loadSettings(): Promise<SiteSettings> {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/settings`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return DEFAULT_SETTINGS;
+    return withDefaults((await res.json()).data);
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName, tagline, description } = await loadSettings();
+  const title = `${siteName} - ${tagline}`;
+  return {
+    title: { default: title, template: `%s | ${siteName}` },
+    description,
+    keywords: [siteName, 'India tourism', 'travel', 'tourist places', 'incredible india', 'destinations'],
+    authors: [{ name: siteName }],
+    openGraph: { title, description, type: 'website', locale: 'en_IN', siteName },
+    twitter: { card: 'summary_large_image', title, description },
+  };
+}
 
 export default function RootLayout({
   children,

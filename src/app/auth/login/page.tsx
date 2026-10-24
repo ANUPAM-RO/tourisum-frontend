@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import AuthShell from '@/components/account/AuthShell';
+import { useSiteSettings } from '@/lib/hooks';
 import FormField, { SubmitButton } from '@/components/account/FormField';
 
 const loginSchema = z.object({
@@ -21,6 +22,7 @@ type LoginSchemaData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const { siteName } = useSiteSettings().settings;
   const { login } = useAuth();
   const router = useRouter();
 
@@ -60,7 +62,7 @@ export default function LoginPage() {
       subtitle="Sign in to your account to continue exploring."
       footer={
         <>
-          New to India Tourism?{' '}
+          New to {siteName}?{' '}
           <Link href="/auth/register" className="font-semibold text-orange-600 transition-colors hover:text-rose-600 dark:text-orange-400">
             Create an account
           </Link>

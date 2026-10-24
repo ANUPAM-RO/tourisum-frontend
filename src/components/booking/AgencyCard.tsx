@@ -1,7 +1,7 @@
 'use client';
 
 import { BadgeCheck, CalendarCheck, Mail, MessageCircle, Phone } from 'lucide-react';
-import { agency, agencyTelLink, agencyWhatsAppLink } from '@/lib/agency';
+import { useAgency } from '@/lib/hooks';
 import { useBookTour } from './BookTourProvider';
 
 interface AgencyCardProps {
@@ -12,6 +12,7 @@ interface AgencyCardProps {
 
 /** Compact "recommended travel agent" card for detail-page sidebars. */
 export default function AgencyCard({ destination, className = '' }: AgencyCardProps) {
+  const agency = useAgency();
   const { openBooking } = useBookTour();
   const waText = destination
     ? `Hi ${agency.name}, I'm interested in a tour to ${destination}. Please share details.`
@@ -45,10 +46,10 @@ export default function AgencyCard({ destination, className = '' }: AgencyCardPr
         Book this tour
       </button>
       <div className="mt-2 grid grid-cols-3 gap-2">
-        <a href={agencyTelLink} className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white text-sm font-medium text-stone-700 transition-colors hover:border-orange-300 hover:text-orange-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200" aria-label={`Call ${agency.name}`}>
+        <a href={agency.telLink} className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white text-sm font-medium text-stone-700 transition-colors hover:border-orange-300 hover:text-orange-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200" aria-label={`Call ${agency.name}`}>
           <Phone className="h-4 w-4" /> Call
         </a>
-        <a href={agencyWhatsAppLink(waText)} target="_blank" rel="noopener noreferrer" className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:text-emerald-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200" aria-label={`WhatsApp ${agency.name}`}>
+        <a href={agency.whatsAppLink(waText)} target="_blank" rel="noopener noreferrer" className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:text-emerald-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200" aria-label={`WhatsApp ${agency.name}`}>
           <MessageCircle className="h-4 w-4" /> Chat
         </a>
         <a href={`mailto:${agency.email}`} className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white text-sm font-medium text-stone-700 transition-colors hover:border-orange-300 hover:text-orange-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200" aria-label={`Email ${agency.name}`}>

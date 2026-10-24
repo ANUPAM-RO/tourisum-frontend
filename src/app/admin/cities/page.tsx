@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { SHOW_STAYS } from '@/lib/features';
 
 interface CityItem {
   _id: string;
@@ -240,10 +241,8 @@ export default function AdminCitiesPage() {
           setDialogOpen(open);
           if (!open) { setEditingCity(null); setFormData(emptyCity); }
         }}>
-          <DialogTrigger>
-            <Button onClick={() => setEditingCity(null)}>
-              <Plus className="h-4 w-4 mr-2" /> Add New City
-            </Button>
+          <DialogTrigger render={<Button onClick={() => setEditingCity(null)} />}>
+            <Plus className="h-4 w-4 mr-2" /> Add New City
           </DialogTrigger>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -434,7 +433,7 @@ export default function AdminCitiesPage() {
                   <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">City</th>
                   <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">State</th>
                   <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Places</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Hotels</th>
+                  {SHOW_STAYS && <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Hotels</th>}
                   <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Status</th>
                   <th className="text-left py-4 px-6 text-sm font-medium text-gray-500">Actions</th>
                 </tr>
@@ -455,7 +454,7 @@ export default function AdminCitiesPage() {
                       </td>
                       <td className="py-4 px-6"><div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-gray-400" />{city.state?.name || '—'}</div></td>
                       <td className="py-4 px-6">{city.popularPlaces?.length || 0}</td>
-                      <td className="py-4 px-6">{city.hotels?.length || 0}</td>
+                      {SHOW_STAYS && <td className="py-4 px-6">{city.hotels?.length || 0}</td>}
                       <td className="py-4 px-6">
                         <button onClick={() => togglePublish(city._id, city.published)}>
                           <Badge className={city.published ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}>

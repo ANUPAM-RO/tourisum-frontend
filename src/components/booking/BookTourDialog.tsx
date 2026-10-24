@@ -5,7 +5,7 @@ import { CheckCircle2, Mail, MessageCircle, Minus, Phone, Plus, X } from 'lucide
 import { toast } from 'sonner';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
-import { agency, agencyMailLink, agencyTelLink, agencyWhatsAppLink } from '@/lib/agency';
+import { useAgency } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 interface BookTourDialogProps {
@@ -22,6 +22,7 @@ const inputClass =
 const labelClass = 'mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400';
 
 export default function BookTourDialog({ open, onOpenChange, defaultDestination = '' }: BookTourDialogProps) {
+  const agency = useAgency();
   const { user } = useAuth();
   const [form, setForm] = useState({
     name: '',
@@ -79,8 +80,8 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
     if (!validate()) return;
     const url =
       channel === 'whatsapp'
-        ? agencyWhatsAppLink(enquiryText())
-        : agencyMailLink(`Tour enquiry: ${form.destination.trim()}`, enquiryText());
+        ? agency.whatsAppLink(enquiryText())
+        : agency.mailLink(`Tour enquiry: ${form.destination.trim()}`, enquiryText());
     window.open(url, '_blank', 'noopener,noreferrer');
     toast.success(`Enquiry ready — ${agency.name} will get back to you shortly.`);
     onOpenChange(false);
@@ -130,7 +131,7 @@ export default function BookTourDialog({ open, onOpenChange, defaultDestination 
 
               <div className="mt-4 grid grid-cols-2 gap-2 md:mt-8">
                 <a
-                  href={agencyTelLink}
+                  href={agency.telLink}
                   className="flex h-10 items-center justify-center gap-1.5 rounded-[10px] bg-white/10 text-sm font-medium transition-colors hover:bg-white/20"
                 >
                   <Phone className="h-4 w-4" />

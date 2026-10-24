@@ -9,6 +9,9 @@ export interface DashboardStats {
   restaurants: number;
   users: number;
   publishedPlaces: number;
+  tours: number;
+  bookings: number;
+  pendingBookings: number;
 }
 
 export const adminService = {

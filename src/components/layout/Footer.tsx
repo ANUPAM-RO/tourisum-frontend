@@ -1,7 +1,12 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { CalendarCheck, Compass, Mail, MapPin, Phone } from 'lucide-react';
-import { agency, agencyTelLink } from '@/lib/agency';
+import { useAgency, useSiteSettings } from '@/lib/hooks';
+import BrandName from '@/components/shared/BrandName';
+import { SHOW_STAYS } from '@/lib/features';
+import type { SiteSettings } from '@/types';
 
 const FacebookIcon = () => (
   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
@@ -16,20 +21,27 @@ const YoutubeIcon = () => (
   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
 );
 
-const socials = [
-  { label: 'Facebook', icon: FacebookIcon },
-  { label: 'X (Twitter)', icon: TwitterIcon },
-  { label: 'Instagram', icon: InstagramIcon },
-  { label: 'YouTube', icon: YoutubeIcon },
+const socials: { key: keyof SiteSettings['social']; label: string; icon: () => React.JSX.Element }[] = [
+  { key: 'facebook', label: 'Facebook', icon: FacebookIcon },
+  { key: 'twitter', label: 'X (Twitter)', icon: TwitterIcon },
+  { key: 'instagram', label: 'Instagram', icon: InstagramIcon },
+  { key: 'youtube', label: 'YouTube', icon: YoutubeIcon },
 ];
 
 const explore = [
   { href: '/states', label: 'All states' },
   { href: '/places', label: 'Tourist places' },
-  { href: '/hotels', label: 'Hotels' },
-  { href: '/restaurants', label: 'Restaurants' },
+  { href: '/tours', label: 'Group tours' },
+  ...(SHOW_STAYS
+    ? [
+        { href: '/hotels', label: 'Hotels' },
+        { href: '/restaurants', label: 'Restaurants' },
+      ]
+    : []),
   { href: '/search', label: 'Search' },
   { href: '/favorites', label: 'My favorites' },
+  { href: '/about', label: 'About us' },
+  { href: '/contact', label: 'Contact us' },
 ];
 
 const states = ['West Bengal', 'Rajasthan', 'Kerala', 'Goa', 'Himachal Pradesh', 'Tamil Nadu'];
@@ -39,6 +51,10 @@ const categories = ['Hill Station', 'Beach', 'Heritage', 'Wildlife', 'Religious'
 const linkClass = 'text-sm text-stone-400 transition-colors hover:text-white';
 
 const Footer = () => {
+  const { settings } = useSiteSettings();
+  const agency = useAgency();
+  const socialLinks = socials.filter((s) => settings.social[s.key]);
+
   return (
     <footer className="relative overflow-hidden bg-stone-950 text-white">
       <div className="pointer-events-none absolute -top-40 left-1/3 h-80 w-80 rounded-full bg-orange-500/10 blur-[100px]" />
@@ -52,11 +68,11 @@ const Footer = () => {
                 <Compass className="h-5 w-5 text-white" />
               </span>
               <span className="text-lg font-bold tracking-tight">
-                India<span className="text-orange-400">Tourism</span>
+                <BrandName accentClassName="text-orange-400" />
               </span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-stone-400">
-              Discover the beauty of India. Explore destinations, plan your trips and create unforgettable memories.
+              {settings.description}
             </p>
             <Link
               href="/#book-a-tour"
@@ -65,11 +81,14 @@ const Footer = () => {
               <CalendarCheck className="h-4 w-4" />
               Book a tour with {agency.name}
             </Link>
+            {socialLinks.length > 0 && (
             <div className="mt-6 flex gap-2">
-              {socials.map(({ label, icon: Icon }) => (
+              {socialLinks.map(({ key, label, icon: Icon }) => (
                 <a
-                  key={label}
-                  href="#"
+                  key={key}
+                  href={settings.social[key]}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-stone-400 transition-colors hover:border-orange-400/60 hover:bg-orange-500/10 hover:text-white"
                 >
@@ -77,6 +96,7 @@ const Footer = () => {
                 </a>
               ))}
             </div>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -121,7 +141,7 @@ const Footer = () => {
               <MapPin className="h-4 w-4 text-orange-400" />
               Tours by {agency.name}
             </span>
-            <a href={agencyTelLink} className="flex items-center gap-2 transition-colors hover:text-white">
+            <a href={agency.telLink} className="flex items-center gap-2 transition-colors hover:text-white">
               <Phone className="h-4 w-4 text-orange-400" />
               {agency.phoneDisplay}
             </a>
@@ -130,7 +150,7 @@ const Footer = () => {
               {agency.email}
             </a>
           </div>
-          <p>&copy; {new Date().getFullYear()} India Tourism. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {settings.siteName}. All rights reserved.</p>
         </div>
       </div>
     </footer>

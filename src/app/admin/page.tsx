@@ -17,6 +17,8 @@ import {
   Filter,
   Loader2,
   Plus,
+  Compass,
+  CalendarCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,13 +26,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import adminService, { DashboardStats } from '@/services/adminService';
 import api from '@/lib/api';
+import { SHOW_STAYS } from '@/lib/features';
 
 const statConfig = [
   { key: 'states' as keyof DashboardStats, label: 'Total States', icon: MapPin, color: 'from-blue-500 to-cyan-500' },
   { key: 'cities' as keyof DashboardStats, label: 'Total Cities', icon: Building2, color: 'from-emerald-500 to-green-500' },
   { key: 'places' as keyof DashboardStats, label: 'Total Places', icon: MapPin, color: 'from-purple-500 to-pink-500' },
-  { key: 'hotels' as keyof DashboardStats, label: 'Total Hotels', icon: Hotel, color: 'from-orange-500 to-red-500' },
-  { key: 'restaurants' as keyof DashboardStats, label: 'Total Restaurants', icon: UtensilsCrossed, color: 'from-indigo-500 to-blue-500' },
+  ...(SHOW_STAYS
+    ? [
+        { key: 'hotels' as keyof DashboardStats, label: 'Total Hotels', icon: Hotel, color: 'from-orange-500 to-red-500' },
+        { key: 'restaurants' as keyof DashboardStats, label: 'Total Restaurants', icon: UtensilsCrossed, color: 'from-indigo-500 to-blue-500' },
+      ]
+    : []),
+  { key: 'tours' as keyof DashboardStats, label: 'Group Tours', icon: Compass, color: 'from-orange-500 to-rose-500' },
+  { key: 'pendingBookings' as keyof DashboardStats, label: 'Pending Bookings', icon: CalendarCheck, color: 'from-amber-500 to-orange-500' },
   { key: 'users' as keyof DashboardStats, label: 'Total Users', icon: Users, color: 'from-teal-500 to-emerald-500' },
 ];
 
@@ -66,10 +75,11 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const fetchRecent = async () => {
       try {
+        const none = { data: { data: [] } };
         const [placesRes, hotelsRes, restaurantsRes] = await Promise.all([
           api.get('/places?limit=5'),
-          api.get('/hotels?limit=5'),
-          api.get('/restaurants?limit=5'),
+          SHOW_STAYS ? api.get('/hotels?limit=5') : none,
+          SHOW_STAYS ? api.get('/restaurants?limit=5') : none,
         ]);
 
         const items: RecentItem[] = [
@@ -165,10 +175,10 @@ export default function AdminDashboardPage() {
                   <span>Add Place</span>
                 </Button>
               </Link>
-              <Link href="/admin/hotels">
+              <Link href="/admin/tours">
                 <Button variant="outline" className="w-full h-20 flex flex-col gap-1">
                   <Plus className="h-5 w-5" />
-                  <span>Add Hotel</span>
+                  <span>Add Tour</span>
                 </Button>
               </Link>
             </div>

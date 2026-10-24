@@ -2,6 +2,8 @@ import HeroSection from '@/components/home/HeroSection';
 import CategoriesSection from '@/components/home/CategoriesSection';
 import TrendingSection from '@/components/home/TrendingSection';
 import StatesSection from '@/components/home/StatesSection';
+import IndiaMapSection from '@/components/home/IndiaMapSection';
+import ToursSection from '@/components/home/ToursSection';
 import FeaturesSection from '@/components/home/FeaturesSection';
 import GuidesSection from '@/components/home/GuidesSection';
 import BudgetSection from '@/components/home/BudgetSection';
@@ -16,7 +18,9 @@ export default function HomePage() {
     <div className="overflow-x-clip">
       <HeroSection />
       <CategoriesSection />
+      <ToursSection />
       <TrendingSection />
+      <IndiaMapSection />
       <StatesSection />
       <FeaturesSection />
       <BudgetSection />

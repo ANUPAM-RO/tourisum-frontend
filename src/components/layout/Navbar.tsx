@@ -16,13 +16,27 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useSiteSettings } from '@/lib/hooks';
+import BrandName from '@/components/shared/BrandName';
+import { SHOW_STAYS } from '@/lib/features';
 
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/states', label: 'States' },
   { href: '/places', label: 'Places' },
-  { href: '/hotels', label: 'Hotels' },
-  { href: '/restaurants', label: 'Restaurants' },
+  { href: '/tours', label: 'Tours' },
+  ...(SHOW_STAYS
+    ? [
+        { href: '/hotels', label: 'Hotels' },
+        { href: '/restaurants', label: 'Restaurants' },
+      ]
+    : []),
+];
+
+// The desktop bar has no room for these; they appear in the mobile menu and the footer.
+const mobileOnlyLinks = [
+  { href: '/about', label: 'About us' },
+  { href: '/contact', label: 'Contact us' },
 ];
 
 const Navbar = () => {
@@ -33,6 +47,7 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isAdmin, loading, logout } = useAuth();
+  const { settings } = useSiteSettings();
 
   const isHomePage = pathname === '/';
   const transparent = isHomePage && !isScrolled;
@@ -76,10 +91,10 @@ const Navbar = () => {
             </div>
             <div className="leading-none">
               <span className={`text-[15px] font-bold tracking-tight ${transparent ? 'text-white' : 'text-gray-900'}`}>
-                India<span className={transparent ? 'text-orange-300' : 'text-orange-500'}>Tourism</span>
+                <BrandName accentClassName={transparent ? 'text-orange-300' : 'text-orange-500'} />
               </span>
               <p className={`text-[9px] font-semibold tracking-[0.15em] uppercase mt-0.5 ${transparent ? 'text-white/55' : 'text-gray-400'}`}>
-                Discover India
+                {settings.tagline}
               </p>
             </div>
           </Link>
@@ -273,7 +288,7 @@ const Navbar = () => {
           >
             <div className="px-4 py-4 space-y-1">
               {/* Nav links */}
-              {navLinks.map((link) => {
+              {[...navLinks, ...mobileOnlyLinks].map((link) => {
                 const isActive = pathname === link.href;
                 return (
                   <Link

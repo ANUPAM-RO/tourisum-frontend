@@ -21,17 +21,26 @@ import {
   LogOut,
   Home,
   Loader2,
+  Compass,
+  CalendarCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { SHOW_STAYS } from '@/lib/features';
 
 const sidebarLinks = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/states', label: 'States', icon: MapPin },
   { href: '/admin/cities', label: 'Cities', icon: Building2 },
   { href: '/admin/places', label: 'Places', icon: MapPin },
-  { href: '/admin/hotels', label: 'Hotels', icon: Hotel },
-  { href: '/admin/restaurants', label: 'Restaurants', icon: UtensilsCrossed },
+  { href: '/admin/tours', label: 'Tours', icon: Compass },
+  { href: '/admin/bookings', label: 'Bookings', icon: CalendarCheck },
+  ...(SHOW_STAYS
+    ? [
+        { href: '/admin/hotels', label: 'Hotels', icon: Hotel },
+        { href: '/admin/restaurants', label: 'Restaurants', icon: UtensilsCrossed },
+      ]
+    : []),
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/uploads', label: 'Gallery', icon: Image },
   { href: '/admin/settings', label: 'Settings', icon: Settings },

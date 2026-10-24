@@ -299,26 +299,85 @@ export interface Itinerary {
   updatedAt: string;
 }
 
-export interface TravelPackage {
+export interface TourDeparture {
+  _id: string;
+  startDate: string;
+  seatsTotal: number;
+  seatsBooked: number;
+  /** Present on public API responses. */
+  seatsLeft?: number;
+}
+
+export interface TourDay {
+  day: number;
+  title: string;
+  description: string;
+  meals: string[];
+  stay: string;
+}
+
+export interface TourPlace {
+  _id: string;
+  name: string;
+  slug: string;
+  images?: string[];
+  rating?: number;
+  category?: string[];
+  state?: { name: string; slug: string };
+}
+
+export interface Tour {
   _id: string;
   title: string;
   slug: string;
+  tagline: string;
   description: string;
-  places: Place[];
-  duration: number;
-  price: {
-    budget: number;
-    standard: number;
-    luxury: number;
-  };
+  coverImage: string;
+  gallery: string[];
+  places: TourPlace[];
+  startCity: string;
+  endCity: string;
+  durationDays: number;
+  durationNights: number;
+  price: number;
+  originalPrice?: number;
+  difficulty: 'Easy' | 'Moderate' | 'Challenging';
+  groupSize: number;
+  tags: string[];
+  departures: TourDeparture[];
+  /** First upcoming departure with seats left (public API only). */
+  nextDeparture?: TourDeparture | null;
+  highlights: string[];
+  itinerary: TourDay[];
   inclusions: string[];
   exclusions: string[];
-  itinerary: string;
-  images: string[];
-  rating: number;
+  thingsToCarry: string[];
+  featured: boolean;
   published: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+
+export interface Booking {
+  _id: string;
+  reference: string;
+  tour: { _id: string; slug: string; coverImage?: string } | string | null;
+  tourTitle: string;
+  departure: string;
+  departureDate: string;
+  name: string;
+  email: string;
+  phone: string;
+  adults: number;
+  children: number;
+  message: string;
+  pricePerPerson: number;
+  totalPrice: number;
+  status: BookingStatus;
+  adminNote: string;
+  createdAt: string;
 }
 
 export interface Blog {
@@ -349,4 +408,47 @@ export interface ApiResponse<T> {
     pages: number;
   };
   message?: string;
+}
+
+export interface SiteSettings {
+  siteName: string;
+  tagline: string;
+  description: string;
+  contact: {
+    agentName: string;
+    agentTitle: string;
+    phone: string;
+    whatsapp: string;
+    email: string;
+    address: string;
+    workingHours: string;
+    mapUrl: string;
+  };
+  highlights: string[];
+  about: {
+    heading: string;
+    intro: string;
+    story: string;
+    mission: string;
+    vision: string;
+    image: string;
+  };
+  social: {
+    facebook: string;
+    instagram: string;
+    twitter: string;
+    youtube: string;
+  };
+}
+
+/** Lightweight place used for map pins (`GET /places/map`). */
+export interface MapPlace {
+  _id: string;
+  name: string;
+  slug: string;
+  state: { _id: string; name: string; slug: string } | null;
+  location: { latitude: number; longitude: number };
+  category: string[];
+  rating: number;
+  image: string | null;
 }

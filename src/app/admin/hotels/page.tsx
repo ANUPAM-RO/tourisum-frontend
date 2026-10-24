@@ -169,10 +169,8 @@ export default function AdminHotelsPage() {
           setDialogOpen(open);
           if (!open) { setEditingHotel(null); setFormData(emptyHotel); }
         }}>
-          <DialogTrigger>
-            <Button onClick={() => setEditingHotel(null)}>
-              <Plus className="h-4 w-4 mr-2" /> Add New Hotel
-            </Button>
+          <DialogTrigger render={<Button onClick={() => setEditingHotel(null)} />}>
+            <Plus className="h-4 w-4 mr-2" /> Add New Hotel
           </DialogTrigger>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

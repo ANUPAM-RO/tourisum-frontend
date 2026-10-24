@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { BadgeCheck, CalendarCheck, CheckCircle2, Mail, MessageCircle, Phone } from 'lucide-react';
 import { useBookTour } from '@/components/booking/BookTourProvider';
 import SafeImage from '@/components/shared/SafeImage';
-import { agency, agencyTelLink, agencyWhatsAppLink } from '@/lib/agency';
+import { useAgency } from '@/lib/hooks';
 import { EASE_OUT, fadeUp, revealOnce } from './motion';
 
 const steps = [
@@ -14,6 +14,7 @@ const steps = [
 ];
 
 export default function AgencySection() {
+  const agency = useAgency();
   const { openBooking } = useBookTour();
 
   return (
@@ -67,7 +68,7 @@ export default function AgencySection() {
                 Book a tour
               </button>
               <a
-                href={agencyWhatsAppLink(`Hi ${agency.name}, I'd like to plan a tour.`)}
+                href={agency.whatsAppLink(`Hi ${agency.name}, I'd like to plan a tour.`)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-6 font-semibold text-stone-800 transition-colors hover:border-emerald-400 hover:text-emerald-700 dark:border-stone-700 dark:bg-stone-900 dark:text-white"
@@ -103,7 +104,7 @@ export default function AgencySection() {
                 </div>
               </div>
               <div className="mt-4 grid gap-2 text-sm">
-                <a href={agencyTelLink} className="flex items-center gap-2.5 text-stone-700 hover:text-orange-600 dark:text-stone-300">
+                <a href={agency.telLink} className="flex items-center gap-2.5 text-stone-700 hover:text-orange-600 dark:text-stone-300">
                   <Phone className="h-4 w-4 text-orange-500" />
                   {agency.phoneDisplay}
                 </a>

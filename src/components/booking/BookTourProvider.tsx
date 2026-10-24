@@ -33,13 +33,15 @@ export default function BookTourProvider({ children }: { children: React.ReactNo
 
   // Detail pages have their own mobile bottom bars; keep the floating button clear of them on small screens.
   const isDetailPage = /^\/(places|hotels|restaurants)\/[^/]+$/.test(pathname ?? '');
+  // Tour pages have their own booking panel, so the custom-trip enquiry button would only compete with it.
+  const isTourPage = /^\/tours\/[^/]+$/.test(pathname ?? '');
 
   return (
     <BookTourContext.Provider value={value}>
       {children}
 
       <AnimatePresence>
-        {!open && (
+        {!open && !isTourPage && (
           <motion.button
             type="button"
             onClick={() => openBooking()}

@@ -188,10 +188,8 @@ export default function AdminStatesPage() {
           setDialogOpen(open);
           if (!open) { setEditingState(null); setFormData(emptyState); }
         }}>
-          <DialogTrigger>
-            <Button onClick={() => setEditingState(null)}>
-              <Plus className="h-4 w-4 mr-2" /> Add New State
-            </Button>
+          <DialogTrigger render={<Button onClick={() => setEditingState(null)} />}>
+            <Plus className="h-4 w-4 mr-2" /> Add New State
           </DialogTrigger>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

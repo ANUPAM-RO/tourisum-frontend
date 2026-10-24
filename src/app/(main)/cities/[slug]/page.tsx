@@ -33,6 +33,7 @@ import { GlancePanel, MapFrame, ghostButton, primaryButton } from '@/components/
 import { DetailNotFound, DetailSkeleton } from '@/components/states/DetailStates';
 import type { Hotel, Place, Restaurant, State } from '@/types';
 import AgencyCard from '@/components/booking/AgencyCard';
+import { SHOW_STAYS } from '@/lib/features';
 
 export default function CityPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -43,8 +44,9 @@ export default function CityPage({ params }: { params: Promise<{ slug: string }>
   if (!city) return <DetailNotFound kind="city" />;
 
   const places: Place[] = Array.isArray(city.popularPlaces) ? city.popularPlaces : [];
-  const hotels: Hotel[] = Array.isArray(city.hotels) ? city.hotels : [];
-  const restaurants: Restaurant[] = Array.isArray(city.restaurants) ? city.restaurants : [];
+  // Every hotel/restaurant block below is skipped when these lists are empty.
+  const hotels: Hotel[] = SHOW_STAYS && Array.isArray(city.hotels) ? city.hotels : [];
+  const restaurants: Restaurant[] = SHOW_STAYS && Array.isArray(city.restaurants) ? city.restaurants : [];
 
   const mapMarkers: MapMarker[] = [
     ...createPlaceMarkers(places),
@@ -220,7 +222,11 @@ export default function CityPage({ params }: { params: Promise<{ slug: string }>
               id="map"
               eyebrow="Map"
               title={`Explore ${city.name} on the map`}
-              description={`${mapMarkers.length} locations including places, hotels & restaurants.`}
+              description={
+                SHOW_STAYS
+                  ? `${mapMarkers.length} locations including places, hotels & restaurants.`
+                  : `${mapMarkers.length} place${mapMarkers.length === 1 ? '' : 's'} to explore.`
+              }
             >
               <MapFrame>
                 <InteractiveMap center={mapCenter} zoom={13} markers={mapMarkers} height="480px" showLegend={true} />

@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import { ApiResponse, Place } from '@/types';
+import { ApiResponse, Place, MapPlace } from '@/types';
 
 export const placeService = {
   getAll: async (params?: {
@@ -37,6 +37,11 @@ export const placeService = {
 
   update: async (id: string, data: Partial<Place>) => {
     const response = await api.put<ApiResponse<Place>>(`/places/${id}`, data);
+    return response.data;
+  },
+
+  getMapPlaces: async () => {
+    const response = await api.get<ApiResponse<MapPlace[]>>('/places/map');
     return response.data;
   },
 

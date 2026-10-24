@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Compass, MapPin } from 'lucide-react';
+import BrandName from '@/components/shared/BrandName';
 import SafeImage from '@/components/shared/SafeImage';
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
@@ -25,7 +26,7 @@ function Logo({ light }: { light?: boolean }) {
         <Compass className="h-5 w-5 text-white" />
       </span>
       <span className={`text-[15px] font-bold tracking-tight ${light ? 'text-white' : 'text-stone-900 dark:text-white'}`}>
-        India<span className={light ? 'text-orange-300' : 'text-orange-500'}>Tourism</span>
+        <BrandName accentClassName={light ? 'text-orange-300' : 'text-orange-500'} />
       </span>
     </Link>
   );

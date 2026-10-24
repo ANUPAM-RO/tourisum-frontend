@@ -295,10 +295,8 @@ export default function AdminPlacesPage() {
           setDialogOpen(open);
           if (!open) { setEditingPlace(null); setFormData(emptyPlace); }
         }}>
-          <DialogTrigger>
-            <Button onClick={() => setEditingPlace(null)}>
-              <Plus className="h-4 w-4 mr-2" /> Add New Place
-            </Button>
+          <DialogTrigger render={<Button onClick={() => setEditingPlace(null)} />}>
+            <Plus className="h-4 w-4 mr-2" /> Add New Place
           </DialogTrigger>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

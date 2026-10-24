@@ -167,10 +167,8 @@ export default function AdminRestaurantsPage() {
           setDialogOpen(open);
           if (!open) { setEditingRestaurant(null); setFormData(emptyRestaurant); }
         }}>
-          <DialogTrigger>
-            <Button onClick={() => setEditingRestaurant(null)}>
-              <Plus className="h-4 w-4 mr-2" /> Add New Restaurant
-            </Button>
+          <DialogTrigger render={<Button onClick={() => setEditingRestaurant(null)} />}>
+            <Plus className="h-4 w-4 mr-2" /> Add New Restaurant
           </DialogTrigger>
           <DialogContent className="max-w-[60vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>

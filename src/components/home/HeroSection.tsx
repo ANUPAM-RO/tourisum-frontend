@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -9,6 +10,9 @@ import FancySelect from '@/components/shared/FancySelect';
 import { useStates } from '@/lib/hooks';
 import { optimizeImage } from '@/lib/utils';
 import { EASE_OUT } from './motion';
+
+// WebGL only runs in the browser, so the particle layer is loaded client-side after the hero renders.
+const HeroParticles = dynamic(() => import('./HeroParticles'), { ssr: false });
 
 const SLIDE_MS = 7000;
 
@@ -58,6 +62,7 @@ export default function HeroSection() {
   const [query, setQuery] = useState('');
   const [state, setState] = useState('');
   const { data: statesData } = useStates({ limit: 50 });
+  const [showParticles, setShowParticles] = useState(false);
   const states = statesData?.data ?? [];
 
   // Restart the timer whenever the slide changes so manual navigation gets a full interval.
@@ -68,6 +73,11 @@ export default function HeroSection() {
     }, SLIDE_MS);
     return () => clearInterval(timer);
   }, [current]);
+
+  // Skip the WebGL layer for users who prefer reduced motion.
+  useEffect(() => {
+    setShowParticles(!window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }, []);
 
   // Warm the cache for the next slide so the crossfade never shows a half-loaded image.
   useEffect(() => {
@@ -108,6 +118,11 @@ export default function HeroSection() {
       </AnimatePresence>
       <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-transparent to-black/40" />
+      {showParticles && (
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+          <HeroParticles />
+        </div>
+      )}
 
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 pb-36">
         <div className="max-w-3xl text-white">
