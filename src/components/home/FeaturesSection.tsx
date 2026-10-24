@@ -1,17 +1,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Calendar, Camera, MapPin, Shield, Star, Wallet } from 'lucide-react';
+import { BadgeCheck, BedDouble, Headphones, ReceiptIndianRupee, ShieldCheck, Users } from 'lucide-react';
 import SectionHeading from './SectionHeading';
 import { fadeUp, revealOnce, stagger } from './motion';
 
 const features = [
-  { icon: MapPin, title: 'Detailed guides', desc: 'History, timings, entry fees and how to get there — everything about a place on one page.' },
-  { icon: Calendar, title: 'Day-wise itineraries', desc: 'Morning, afternoon and evening plans so you spend time exploring, not planning.' },
-  { icon: Wallet, title: 'Cost estimates', desc: 'Budget, standard and luxury breakdowns for hotels, food, travel and tickets.' },
-  { icon: Star, title: 'Honest reviews', desc: 'Ratings and stories from real travellers to help you choose with confidence.' },
-  { icon: Shield, title: 'Safety first', desc: 'Emergency numbers, local tips and safety guidance for every destination.' },
-  { icon: Camera, title: 'Photos & videos', desc: 'See a place before you go with curated galleries and travel videos.' },
+  { icon: BedDouble, title: 'Handpicked hotels', desc: 'Every stay is chosen and checked by our team — see the exact hotels, photos and locations before you book.' },
+  { icon: Users, title: 'Tour coordinator on every trip', desc: 'A dedicated coordinator travels with the group and handles check-ins, transfers and sightseeing for you.' },
+  { icon: ReceiptIndianRupee, title: 'Clear, honest pricing', desc: 'Per-person prices for 2, 3 or 4 in a room with a full breakdown — no hidden charges added later.' },
+  { icon: ShieldCheck, title: 'No payment to reserve', desc: 'Reserve your seats for free. We confirm within 24 hours and only then share payment details.' },
+  { icon: BadgeCheck, title: 'Fixed departures, small groups', desc: 'Planned dates and limited seats per departure, so the trip stays comfortable and personal.' },
+  { icon: Headphones, title: 'Support before & during the trip', desc: 'Questions about dates, rooms or a custom plan? Call, WhatsApp or raise a query — a real person replies.' },
 ];
 
 export default function FeaturesSection() {
@@ -19,9 +19,9 @@ export default function FeaturesSection() {
     <section className="bg-white py-20 md:py-28 dark:bg-stone-950">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
-          eyebrow="Why travel with us"
-          title={<>Plan your trip, <em className="italic text-gradient-warm pr-1">effortlessly</em></>}
-          description="Everything you need for the perfect Indian holiday, all in one place."
+          eyebrow="Why choose us"
+          title={<>Tours you can <em className="italic text-gradient-warm pr-1">trust</em></>}
+          description="We plan, book and run every tour ourselves — so all you have to do is enjoy the journey."
         />
 
         <motion.div

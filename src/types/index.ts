@@ -478,3 +478,20 @@ export interface MapPlace {
   rating: number;
   image: string | null;
 }
+
+/** Customer review for the home page, managed in admin. */
+export interface Testimonial {
+  _id: string;
+  name: string;
+  location: string;
+  /** Tour or trip the customer took. */
+  trip: string;
+  rating: number;
+  text: string;
+  photo: string;
+  published: boolean;
+  /** Lower numbers show first. */
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}

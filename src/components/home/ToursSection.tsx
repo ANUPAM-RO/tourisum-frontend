@@ -17,9 +17,9 @@ export default function ToursSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
           align="left"
-          eyebrow="Group tours"
-          title={<>Your next tour <em className="italic text-gradient-warm pr-1">with us</em></>}
-          description="Hand-crafted group trips with fixed departures — hotels, transport and a tour coordinator all taken care of."
+          eyebrow="Our tours"
+          title={<>Our most <em className="italic text-gradient-warm pr-1">popular</em> tours</>}
+          description="Carefully planned group tours with fixed departures — handpicked hotels, transport and a tour coordinator, all included."
           action={
             <Link
               href="/tours"

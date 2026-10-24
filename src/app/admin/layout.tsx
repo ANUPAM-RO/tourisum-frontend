@@ -23,6 +23,7 @@ import {
   Loader2,
   Compass,
   CalendarCheck,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -35,6 +36,7 @@ const sidebarLinks = [
   { href: '/admin/places', label: 'Places', icon: MapPin },
   { href: '/admin/tours', label: 'Tours', icon: Compass },
   { href: '/admin/bookings', label: 'Bookings', icon: CalendarCheck },
+  { href: '/admin/reviews', label: 'Reviews', icon: Star },
   ...(SHOW_STAYS
     ? [
         { href: '/admin/hotels', label: 'Hotels', icon: Hotel },

@@ -16,15 +16,16 @@ export default function HomePage() {
   return (
     <div className="overflow-x-clip">
       <HeroSection />
-      <CategoriesSection />
+      {/* Lead with what we sell and why to book with us; destination guides follow. */}
       <ToursSection />
+      <FeaturesSection />
+      <TestimonialsSection />
+      <AgencySection />
+      <CategoriesSection />
       <TrendingSection />
       <IndiaMapSection />
       <StatesSection />
-      <FeaturesSection />
-      <AgencySection />
       <GuidesSection />
-      <TestimonialsSection />
       <NewsletterCta />
     </div>
   );

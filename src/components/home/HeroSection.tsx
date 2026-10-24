@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { MapPin, Search, Sparkles } from 'lucide-react';
-import FancySelect from '@/components/shared/FancySelect';
-import { useStates } from '@/lib/hooks';
+import { ArrowRight, BadgeCheck, Clock, MapPin, MessageSquareText, ShieldCheck, Star } from 'lucide-react';
+import { useBookTour } from '@/components/booking/BookTourProvider';
+import { useAgency } from '@/lib/hooks';
 import { optimizeImage } from '@/lib/utils';
 import { EASE_OUT } from './motion';
 
@@ -21,49 +20,58 @@ const slides = [
     image: 'https://images.unsplash.com/photo-1564507592333-c60657eea523',
     tag: 'Heritage',
     place: 'Taj Mahal, Agra',
-    title: (<>Discover <em className="italic text-orange-300">Incredible</em> India</>),
-    subtitle: 'Palaces, peaks, backwaters and beaches — 500+ destinations across 28 states, curated for you.',
+    title: (<>India&apos;s Best Tours, <em className="italic text-orange-300">Planned</em> for You</>),
+    subtitle: 'Group tours and custom holidays across India — handpicked hotels, comfortable transport and a tour coordinator, all taken care of by us.',
   },
   {
     image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa',
     tag: 'Mountains',
     place: 'The Himalayas',
-    title: (<>Where the <em className="italic text-orange-300">Himalayas</em> Begin</>),
-    subtitle: 'Snow-capped trails, monasteries and quiet valleys waiting at the roof of the world.',
+    title: (<>Himalayan Tours, <em className="italic text-orange-300">Done Right</em></>),
+    subtitle: 'Kashmir, Ladakh, Sikkim and beyond — fixed departures with acclimatised itineraries, permits arranged and stays you can trust.',
   },
   {
     image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2',
     tag: 'Beaches',
     place: 'Goa',
-    title: (<>Sun, Sand & <em className="italic text-orange-300">Slow</em> Days</>),
-    subtitle: 'Golden shores, Portuguese lanes and sunsets that make you forget the time.',
+    title: (<>Holidays Without the <em className="italic text-orange-300">Hassle</em></>),
+    subtitle: 'You choose the dates and the rooms — we handle the bookings, transfers and every detail in between.',
   },
   {
     image: 'https://images.unsplash.com/photo-1593693411515-c20261bcad6e',
     tag: 'Backwaters',
     place: 'Alleppey, Kerala',
-    title: (<>Drift Through <em className="italic text-orange-300">God&apos;s Own</em> Country</>),
-    subtitle: 'Houseboats, coconut groves and the calm green waters of Kerala.',
+    title: (<>Travel More, <em className="italic text-orange-300">Worry</em> Less</>),
+    subtitle: 'Clear per-person prices, no payment to reserve and your seats confirmed within 24 hours.',
   },
 ];
 
-const quickSearches = ['Goa', 'Jaipur', 'Manali', 'Varanasi', 'Munnar'];
+const popularTours = [
+  { label: 'Kashmir & Vaishno Devi', slug: 'kashmir-vaishno-devi-amritsar' },
+  { label: 'Rajasthan Desert', slug: 'rajasthan-desert-safari-mount-abu' },
+  { label: 'Kerala', slug: 'kerala-backwaters-and-hills' },
+  { label: 'Ladakh', slug: 'ladakh-adventure-leh-nubra-pangong' },
+  { label: 'Gujarat', slug: 'gujarat-rann-dwarka-somnath-gir' },
+];
+
+const trustPoints = [
+  { icon: ShieldCheck, label: 'No payment to reserve' },
+  { icon: Clock, label: 'Confirmed within 24 hours' },
+  { icon: BadgeCheck, label: 'Handpicked hotels' },
+];
 
 const stats = [
-  { value: '500+', label: 'Destinations' },
-  { value: '28', label: 'States' },
-  { value: '50K+', label: 'Travelers' },
+  { value: '50K+', label: 'Happy travellers' },
   { value: '4.8★', label: 'Avg. rating' },
+  { value: '500+', label: 'Destinations' },
+  { value: '28', label: 'States covered' },
 ];
 
 export default function HeroSection() {
-  const router = useRouter();
+  const agency = useAgency();
+  const { openBooking } = useBookTour();
   const [current, setCurrent] = useState(0);
-  const [query, setQuery] = useState('');
-  const [state, setState] = useState('');
-  const { data: statesData } = useStates({ limit: 50 });
   const [showParticles, setShowParticles] = useState(false);
-  const states = statesData?.data ?? [];
 
   // Restart the timer whenever the slide changes so manual navigation gets a full interval.
   // Skips ticks while the tab is hidden instead of piling up transitions in the background.
@@ -84,14 +92,6 @@ export default function HeroSection() {
     const next = new Image();
     next.src = optimizeImage(slides[(current + 1) % slides.length].image, 1920);
   }, [current]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (query.trim()) params.set('q', query.trim());
-    if (state) params.set('state', state);
-    router.push(params.toString() ? `/search?${params}` : '/search');
-  };
 
   const slide = slides[current];
 
@@ -132,8 +132,8 @@ export default function HeroSection() {
             transition={{ duration: 0.6, ease: EASE_OUT }}
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium"
           >
-            <Sparkles className="h-4 w-4 text-amber-300" />
-            Your guide to every corner of India
+            <Star className="h-4 w-4 fill-amber-300 text-amber-300" />
+            {agency.name} · Trusted tour &amp; travel company
           </motion.div>
 
           <div className="min-h-[9.5rem] sm:min-h-[11rem] md:min-h-[13rem]">
@@ -155,59 +155,58 @@ export default function HeroSection() {
             </AnimatePresence>
           </div>
 
-          {/* Search */}
-          <motion.form
-            onSubmit={handleSearch}
+          {/* Calls to action */}
+          <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15, ease: EASE_OUT }}
-            className="mt-8 flex flex-col gap-2 rounded-2xl bg-white p-2 shadow-2xl shadow-black/30 sm:flex-row sm:items-center sm:gap-0"
+            className="mt-8 flex flex-col gap-3 sm:flex-row"
           >
-            <label className="flex flex-1 items-center gap-3 px-4 py-2.5">
-              <Search className="h-5 w-5 shrink-0 text-orange-500" />
-              <span className="sr-only">Destination</span>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Where do you want to go?"
-                className="w-full bg-transparent text-[15px] text-stone-900 placeholder:text-stone-400 outline-none"
-              />
-            </label>
-            <div className="hidden h-8 w-px bg-stone-200 sm:block" />
-            <FancySelect
-              label="State"
-              icon={MapPin}
-              value={state}
-              onChange={setState}
-              options={[{ value: '', label: 'All states' }, ...states.map((s) => ({ value: s.name, label: s.name }))]}
-              className="sm:w-56"
-              triggerClassName="h-12 rounded-xl border-transparent bg-transparent px-4 text-[15px] font-normal ring-0 hover:border-transparent sm:rounded-none [&>svg:first-child]:h-5 [&>svg:first-child]:w-5"
-              panelClassName="text-left"
-            />
-            <button
-              type="submit"
-              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 px-7 font-semibold text-white shadow-lg shadow-orange-500/30 transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98]"
+            <Link
+              href="/tours"
+              className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-orange-500/30 transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98]"
             >
-              <Search className="h-4 w-4" />
-              Explore
+              Explore our tours
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => openBooking()}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/20"
+            >
+              <MessageSquareText className="h-4 w-4" />
+              Plan a custom trip
             </button>
-          </motion.form>
+          </motion.div>
+
+          <motion.ul
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
+            className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/85"
+          >
+            {trustPoints.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-1.5">
+                <Icon className="h-4 w-4 text-emerald-300" />
+                {label}
+              </li>
+            ))}
+          </motion.ul>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-5 flex flex-wrap items-center gap-2 text-sm"
+            transition={{ duration: 0.6, delay: 0.35 }}
+            className="mt-6 flex flex-wrap items-center gap-2 text-sm"
           >
-            <span className="text-white/60">Popular:</span>
-            {quickSearches.map((q) => (
+            <span className="text-white/60">Popular tours:</span>
+            {popularTours.map((t) => (
               <Link
-                key={q}
-                href={`/search?q=${encodeURIComponent(q)}`}
+                key={t.slug}
+                href={`/tours/${t.slug}`}
                 className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-white/85 transition-colors hover:bg-white/15 hover:text-white"
               >
-                {q}
+                {t.label}
               </Link>
             ))}
           </motion.div>

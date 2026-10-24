@@ -9,6 +9,7 @@ import cityService from '@/services/cityService';
 import authService from '@/services/authService';
 import settingsService from '@/services/settingsService';
 import tourService from '@/services/tourService';
+import testimonialService from '@/services/testimonialService';
 import { agencyFrom, withDefaults } from '@/lib/siteSettings';
 import { hotelService, restaurantService } from '@/services/hotelRestaurantService';
 import { Place, State, City, Hotel, Restaurant } from '@/types';
@@ -163,5 +164,13 @@ export const useTour = (slug: string) => {
     queryKey: ['tour', slug],
     queryFn: async () => (await tourService.getBySlug(slug)).data,
     enabled: !!slug,
+  });
+};
+
+export const useTestimonials = (limit = 8) => {
+  return useQuery({
+    queryKey: ['testimonials', limit],
+    queryFn: async () => (await testimonialService.getAll({ limit })).data,
+    staleTime: 5 * 60 * 1000,
   });
 };
